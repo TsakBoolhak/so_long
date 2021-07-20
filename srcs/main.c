@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "libft.h"
+#include "mlx.h"
 
 typedef struct s_coord
 {
@@ -15,6 +16,9 @@ typedef struct s_game
 	int		width;
 	char	**map;
 	t_coord	player;
+	t_coord	res;
+	void	*win;
+	void	*mlx;
 }t_game;
 
 typedef struct s_parse
@@ -24,6 +28,16 @@ typedef struct s_parse
 	int	line_error;
 	int	char_error;
 }t_parse;
+
+typedef struct s_img
+{
+	void	*img;
+	char	*addr;
+	int		bpp;
+	int		width;
+	int		height;
+	int		endian;
+}t_img;
 
 void	print_usage(void)
 {
@@ -317,12 +331,124 @@ int	parser(int ac, char **av, t_game *game)
 	return (0);
 }
 
+void	fill_wall_img(t_img *pack, t_img *wall)
+{
+	int		x;
+	int		y;
+	int		i;
+	char	*addr;
+
+	y = 64;
+	i = 0;
+	while (y < 97)
+	{
+		x = 64;
+		while (x < 96)
+		{
+			addr = pack->addr + (y * pack->width + x * (pack->bpp / 8));
+			ft_memcpy(wall->addr + i, addr, 4);
+			i += 4;
+			x++;
+		}
+		y++;
+	}
+}
+
+void	fill_water_img(t_img *pack, t_img *water)
+{
+	int		x;
+	int		y;
+	int		i;
+	char	*addr;
+
+	y = 64;
+	i = 0;
+	while (y < 97)
+	{
+		x = 32;
+		while (x < 64)
+		{
+			addr = pack->addr + (y * pack->width + x * (pack->bpp / 8));
+			ft_memcpy(water->addr + i, addr, 4);
+			i += 4;
+			x++;
+		}
+		y++;
+	}
+}
+
+void	fill_grass_img(t_img *pack, t_img *grass)
+{
+	int		x;
+	int		y;
+	int		i;
+	char	*addr;
+
+	y = 64;
+	i = 0;
+	while (y < 97)
+	{
+		x = 0;
+		while (x < 32)
+		{
+			addr = pack->addr + (y * pack->width + x * (pack->bpp / 8));
+			ft_memcpy(grass->addr + i, addr, 4);
+			i += 4;
+			x++;
+		}
+		y++;
+	}
+}
+
 int	main(int ac, char **av)
 {
 	t_game	game;
+	t_img	txtrs1;
+	t_img	grass;
+	t_img	wall;
+	t_img	water;
+	int	x_txt;
+	int	y_txt;
 
 	if (parser(ac, av, &game))
 		return (0);
 	ft_free_tab((void **)(game.map));
+	game.mlx = mlx_init();
+	mlx_get_screen_size(game.mlx, &game.res.x, &game.res.y);
+	game.res.x /= 32;
+	game.res.x--;
+	game.res.x *= 32;
+	game.res.y /= 32;
+	game.res.y--;
+	game.res.y *= 32;
+	game.win = mlx_new_window(game.mlx, game.res.x, game.res.y, "test");
+	txtrs1.img = mlx_xpm_file_to_image(game.mlx, "./test1.xpm", &txtrs1.width, &txtrs1.height);
+	txtrs1.addr = mlx_get_data_addr(txtrs1.img, &txtrs1.bpp, &txtrs1.width, &txtrs1.endian);
+	grass.img = mlx_new_image(game.mlx, 32, 32);
+	grass.addr = mlx_get_data_addr(grass.img, &grass.bpp, &grass.width, &grass.endian);
+	wall.img = mlx_new_image(game.mlx, 32, 32);
+	wall.addr = mlx_get_data_addr(wall.img, &wall.bpp, &wall.width, &wall.endian);
+	water.img = mlx_new_image(game.mlx, 32, 32);
+	water.addr = mlx_get_data_addr(water.img, &water.bpp, &water.width, &water.endian);
+	fill_grass_img(&txtrs1, &grass);
+	fill_wall_img(&txtrs1, &wall);
+	fill_water_img(&txtrs1, &water);
+	y_txt = 0;
+	while (y_txt < game.res.y)
+	{
+		x_txt = 0;
+		while (x_txt < game.res.x)
+		{
+			if (!x_txt || x_txt == game.res.x - 32 || !y_txt || y_txt == game.res.y - 32)
+				mlx_put_image_to_window(game.mlx, game.win, water.img, x_txt, y_txt);
+			else if (x_txt == 32 || x_txt == game.res.x - 64 || y_txt == 32 || y_txt == game.res.y - 64)
+				mlx_put_image_to_window(game.mlx, game.win, wall.img, x_txt, y_txt);
+			else
+				mlx_put_image_to_window(game.mlx, game.win, grass.img, x_txt, y_txt);
+			x_txt += 32;
+		}
+		y_txt += 32;
+	}
+	mlx_loop(game.mlx);
 	return (0);
 }
