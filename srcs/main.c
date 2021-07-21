@@ -10,15 +10,23 @@ typedef struct s_coord
 	int	y;
 }t_coord;
 
+typedef struct s_screen
+{
+	t_coord	size;
+	t_coord	player;
+	char	**map;
+}t_screen;
+
 typedef struct s_game
 {
-	int		height;
-	int		width;
-	char	**map;
-	t_coord	player;
-	t_coord	res;
-	void	*win;
-	void	*mlx;
+	int			height;
+	int			width;
+	char		**map;
+	t_screen	screen;
+	t_coord		player;
+	t_coord		res;
+	void		*win;
+	void		*mlx;
 }t_game;
 
 typedef struct s_parse
@@ -400,55 +408,215 @@ void	fill_grass_img(t_img *pack, t_img *grass)
 	}
 }
 
+void	fill_collect_img(t_img *pack, t_img *collect, t_img *grass)
+{
+	int		x;
+	int		y;
+	int		i;
+	char	*addr;
+
+	y = 0;
+	i = 0;
+	while (y < 32)
+	{
+		x = 128;
+		while (x < 160)
+		{
+			addr = pack->addr + (y * pack->width + x * (pack->bpp / 8));
+			if ((int)(*addr) == 0)
+				addr = grass->addr + i;
+			ft_memcpy(collect->addr + i, addr, 4);
+			i += 4;
+			x++;
+		}
+		y++;
+	}
+}
+
+void	fill_exit_img(t_img *pack, t_img *collect, t_img *grass)
+{
+	int		x;
+	int		y;
+	int		i;
+	char	*addr;
+
+	y = 0;
+	i = 0;
+	while (y < 32)
+	{
+		x = 64;
+		while (x < 96)
+		{
+			addr = pack->addr + (y * pack->width + x * (pack->bpp / 8));
+			if ((int)(*addr) == 0)
+				addr = grass->addr + i;
+			ft_memcpy(collect->addr + i, addr, 4);
+			i += 4;
+			x++;
+		}
+		y++;
+	}
+}
+
+void	fill_player_img(t_img *pack, t_img *player, t_img *grass)
+{
+	int		x;
+	int		y;
+	int		i;
+	char	*addr;
+
+	y = 0;
+	i = 0;
+	while (y < 32)
+	{
+		x = 32;
+		while (x < 64)
+		{
+			addr = pack->addr + (y * pack->width + x * (pack->bpp / 8));
+			if ((int)(*addr) == 0)
+				addr = grass->addr + i;
+			ft_memcpy(player->addr + i, addr, 4);
+			i += 4;
+			x++;
+		}
+		y++;
+	}
+}
+
 int	main(int ac, char **av)
 {
 	t_game	game;
 	t_img	txtrs1;
+	t_img	txtrs2;
 	t_img	grass;
 	t_img	wall;
 	t_img	water;
-	int	x_txt;
-	int	y_txt;
+	t_img	collect;
+	t_img	exit;
+	t_img	player;
+	int	x;
+	int	y;
 
 	if (parser(ac, av, &game))
 		return (0);
-	ft_free_tab((void **)(game.map));
 	game.mlx = mlx_init();
 	mlx_get_screen_size(game.mlx, &game.res.x, &game.res.y);
 	game.res.x /= 32;
 	game.res.x--;
+	game.screen.size.x = game.res.x;
 	game.res.x *= 32;
 	game.res.y /= 32;
 	game.res.y--;
+	game.screen.size.y = game.res.y;
 	game.res.y *= 32;
+
 	game.win = mlx_new_window(game.mlx, game.res.x, game.res.y, "test");
 	txtrs1.img = mlx_xpm_file_to_image(game.mlx, "./test1.xpm", &txtrs1.width, &txtrs1.height);
 	txtrs1.addr = mlx_get_data_addr(txtrs1.img, &txtrs1.bpp, &txtrs1.width, &txtrs1.endian);
+	txtrs2.img = mlx_xpm_file_to_image(game.mlx, "./cat1.xpm", &txtrs2.width, &txtrs2.height);
+	txtrs2.addr = mlx_get_data_addr(txtrs2.img, &txtrs2.bpp, &txtrs2.width, &txtrs2.endian);
 	grass.img = mlx_new_image(game.mlx, 32, 32);
 	grass.addr = mlx_get_data_addr(grass.img, &grass.bpp, &grass.width, &grass.endian);
 	wall.img = mlx_new_image(game.mlx, 32, 32);
 	wall.addr = mlx_get_data_addr(wall.img, &wall.bpp, &wall.width, &wall.endian);
 	water.img = mlx_new_image(game.mlx, 32, 32);
 	water.addr = mlx_get_data_addr(water.img, &water.bpp, &water.width, &water.endian);
+	collect.img = mlx_new_image(game.mlx, 32, 32);
+	collect.addr = mlx_get_data_addr(collect.img, &collect.bpp, &collect.width, &collect.endian);
+	exit.img = mlx_new_image(game.mlx, 32, 32);
+	exit.addr = mlx_get_data_addr(exit.img, &exit.bpp, &exit.width, &exit.endian);
+	player.img = mlx_new_image(game.mlx, 32, 32);
+	player.addr = mlx_get_data_addr(player.img, &player.bpp, &player.width, &player.endian);
 	fill_grass_img(&txtrs1, &grass);
 	fill_wall_img(&txtrs1, &wall);
 	fill_water_img(&txtrs1, &water);
-	y_txt = 0;
-	while (y_txt < game.res.y)
+	fill_collect_img(&txtrs1, &collect, &grass);
+	fill_exit_img(&txtrs1, &exit, &grass);
+	fill_player_img(&txtrs2, &player, &grass);
+
+	game.screen.map = malloc(sizeof(char *) * (game.screen.size.y + 1));
+	if (!game.screen.map)
 	{
-		x_txt = 0;
-		while (x_txt < game.res.x)
+		//handle
+		;
+	}
+	(game.screen.map)[game.screen.size.y] = NULL;
+	y = 0;
+	while (y < game.screen.size.y)
+	{
+		(game.screen.map)[y] = malloc(sizeof(char) * (game.screen.size.x + 1));
+		if (!((game.screen.map)[y]))
 		{
-			if (!x_txt || x_txt == game.res.x - 32 || !y_txt || y_txt == game.res.y - 32)
-				mlx_put_image_to_window(game.mlx, game.win, water.img, x_txt, y_txt);
-			else if (x_txt == 32 || x_txt == game.res.x - 64 || y_txt == 32 || y_txt == game.res.y - 64)
-				mlx_put_image_to_window(game.mlx, game.win, wall.img, x_txt, y_txt);
-			else
-				mlx_put_image_to_window(game.mlx, game.win, grass.img, x_txt, y_txt);
-			x_txt += 32;
+			//handle
+			;
 		}
-		y_txt += 32;
+		(game.screen.map)[y][game.screen.size.x] = '\0';
+		y++;
+	}
+
+	int	i;
+	int	j = 0;
+	if (game.width <= game.screen.size.x)
+	{
+		i = game.screen.size.x - game.width;
+		y = 0;
+		while (y < game.screen.size.y)
+		{
+			ft_memset((game.screen.map)[y], 'W', (i / 2) + (i % 2 != 0));
+			if (game.height <= game.screen.size.y)
+			{
+				if (!j)
+					j = game.screen.size.y - game.height;
+				if (y < (j / 2) + (j % 2 != 0) || y >= game.screen.size.y - j / 2)
+					ft_memset((game.screen.map)[y] + (i / 2) + (i % 2 != 0), 'W', game.screen.size.x - (i / 2) - (i % 2 != 0));
+				else
+				{
+					ft_memcpy((game.screen.map)[y] + (i / 2) + (i % 2 != 0), (game.map)[y - (j / 2) - (j % 2 != 0)], game.width);
+					ft_memset((game.screen.map)[y] + game.screen.size.x - i / 2, 'W', i / 2);
+				}
+			}
+			else
+				ft_memset((game.screen.map)[y] + game.screen.size.x - i / 2, 'W', i / 2);
+			y++;
+		}
+	}
+	else
+	{
+		y = 0;
+		while (y < game.screen.size.y)
+		{
+			ft_memset((game.screen.map)[y], 'W', game.screen.size.x);
+			y++;
+		}
+	}
+	
+	ft_putendl_fd("screen :", 1);
+	print_map(game.screen.map, 1);
+	y = 0;
+	char c;
+	while (y  < game.res.y)
+	{
+		x = 0;
+		while (x < game.res.x)
+		{
+			c = (game.screen.map)[y / 32][x / 32];
+			if (c == 'W')
+				mlx_put_image_to_window(game.mlx, game.win, water.img, x, y);
+			else if (c == '1')
+				mlx_put_image_to_window(game.mlx, game.win, wall.img, x, y);
+			else if (c == 'C')
+				mlx_put_image_to_window(game.mlx, game.win, collect.img, x, y);
+			else if (c == 'E')
+				mlx_put_image_to_window(game.mlx, game.win, exit.img, x, y);
+			else if (c == 'P')
+				mlx_put_image_to_window(game.mlx, game.win, player.img, x, y);
+			else
+				mlx_put_image_to_window(game.mlx, game.win, grass.img, x, y);
+			x += 32;
+		}
+		y += 32;
 	}
 	mlx_loop(game.mlx);
+	ft_free_tab((void **)(game.map));
 	return (0);
 }
