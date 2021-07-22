@@ -10,10 +10,40 @@ typedef struct s_coord
 	int	y;
 }t_coord;
 
+typedef struct s_img
+{
+	void	*img;
+	char	*addr;
+	int		bpp;
+	int		width;
+	int		height;
+	int		end;
+}t_img;
+
+typedef struct s_character
+{
+	t_img	front_1;
+	t_img	front_2;
+	t_img	front_3;
+	t_img	back_1;
+	t_img	back_2;
+	t_img	back_3;
+	t_img	right_1;
+	t_img	right_2;
+	t_img	right_3;
+	t_img	left_1;
+	t_img	left_2;
+	t_img	left_3;
+	int		state;
+	int		dir;
+	t_coord	pos;
+}t_character;
+
 typedef struct s_screen
 {
 	t_coord	size;
 	t_coord	player;
+	t_img	img;
 	char	**map;
 }t_screen;
 
@@ -23,8 +53,13 @@ typedef struct s_game
 	int			width;
 	char		**map;
 	t_screen	screen;
-	t_coord		player;
 	t_coord		res;
+	t_img		water;
+	t_img		wall;
+	t_img		grass;
+	t_img		exit;
+	t_img		collect;
+	t_character	player;
 	void		*win;
 	void		*mlx;
 }t_game;
@@ -36,16 +71,6 @@ typedef struct s_parse
 	int	line_error;
 	int	char_error;
 }t_parse;
-
-typedef struct s_img
-{
-	void	*img;
-	char	*addr;
-	int		bpp;
-	int		width;
-	int		height;
-	int		endian;
-}t_img;
 
 void	print_usage(void)
 {
@@ -168,8 +193,8 @@ void	handle_valid_char(char c, int i, t_game *game, t_parse *parse)
 {
 	if (c == 'P')
 	{
-		game->player.x = i;
-		game->player.y = game->width - 1;
+		game->player.pos.x = i;
+		game->player.pos.y = game->width - 1;
 	}
 	else if (c == 'C')
 		(parse->collectible)++;
@@ -191,7 +216,7 @@ void	check_char(char *line, int i, t_game *game, t_parse *parse)
 		print_char_error(line[i], i + 1, &parse->char_error);
 		ft_putstr_fd(" -Not a valid character", 2);
 	}
-	if (line[i] == 'P' && game->player.x != -1)
+	if (line[i] == 'P' && game->player.pos.x != -1)
 	{
 		print_line_error(line, game->height, &parse->line_error, game->map);
 		print_char_error(line[i], i + 1, &parse->char_error);
@@ -271,8 +296,8 @@ void	last_parsing_checks(char *line, t_game *game, t_parse *parse)
 		}
 		i++;
 	}
-	if (!parse->collectible || !parse->exit || game->player.x == -1)
-		print_last_error(parse, game->map, game->player.x);
+	if (!parse->collectible || !parse->exit || game->player.pos.x == -1)
+		print_last_error(parse, game->map, game->player.pos.x);
 }
 
 int	map_parser(int fd, t_game *game, t_parse *parse)
@@ -308,8 +333,8 @@ void	init_parsing(t_game *game, t_parse *parse)
 {
 	ft_memset(parse, 0, sizeof(*parse));
 	ft_memset(game, 0, sizeof(*game));
-	game->player.x = -1;
-	game->player.y = -1;
+	game->player.pos.x = -1;
+	game->player.pos.y = -1;
 }
 
 int	parser(int ac, char **av, t_game *game)
@@ -339,22 +364,23 @@ int	parser(int ac, char **av, t_game *game)
 	return (0);
 }
 
-void	fill_wall_img(t_img *pack, t_img *wall)
+void	fill_texture_img(t_img *pack, t_img *img, int x_start, int y_start)
 {
 	int		x;
 	int		y;
 	int		i;
 	char	*addr;
 
-	y = 64;
 	i = 0;
-	while (y < 97)
+	y = y_start;
+	while (y < y_start + 32)
 	{
-		x = 64;
-		while (x < 96)
+		x = x_start;
+		while (x < x_start + 32)
 		{
 			addr = pack->addr + (y * pack->width + x * (pack->bpp / 8));
-			ft_memcpy(wall->addr + i, addr, 4);
+			if ((int)(*addr))
+				ft_memcpy(img->addr + i, addr, 4);
 			i += 4;
 			x++;
 		}
@@ -362,177 +388,124 @@ void	fill_wall_img(t_img *pack, t_img *wall)
 	}
 }
 
-void	fill_water_img(t_img *pack, t_img *water)
+void	put_img_to_img(t_img *dst, t_img *src, int x_start, int y_start)
 {
-	int		x;
-	int		y;
-	int		i;
-	char	*addr;
+	t_coord	dst_pos;
+	t_coord	src_pos;
+	char	*addr_dst;
+	char	*addr_src;
+	int		color;
 
-	y = 64;
-	i = 0;
-	while (y < 97)
+	dst_pos.y = y_start;
+	src_pos.y = 0;
+	while (dst_pos.y < y_start + 32)
 	{
-		x = 32;
-		while (x < 64)
+		dst_pos.x = x_start;
+		src_pos.x = 0;
+		while (dst_pos.x < x_start + 32)
 		{
-			addr = pack->addr + (y * pack->width + x * (pack->bpp / 8));
-			ft_memcpy(water->addr + i, addr, 4);
-			i += 4;
-			x++;
+			addr_dst = dst->addr + (dst_pos.y * dst->width + dst_pos.x * 4);
+			addr_src = src->addr + (src_pos.y * src->width + src_pos.x * 4);
+			color = (int)(*addr_src);
+			if (color && color != (int)(*addr_dst))
+				ft_memcpy(addr_dst, addr_src, 4);
+			dst_pos.x++;
+			src_pos.x++;
 		}
-		y++;
+		dst_pos.y++;
+		src_pos.y++;
 	}
 }
 
-void	fill_grass_img(t_img *pack, t_img *grass)
+int	init_screen(t_game *game)
 {
-	int		x;
-	int		y;
-	int		i;
-	char	*addr;
-
-	y = 64;
-	i = 0;
-	while (y < 97)
-	{
-		x = 0;
-		while (x < 32)
-		{
-			addr = pack->addr + (y * pack->width + x * (pack->bpp / 8));
-			ft_memcpy(grass->addr + i, addr, 4);
-			i += 4;
-			x++;
-		}
-		y++;
-	}
+	mlx_get_screen_size(game->mlx, &game->res.x, &game->res.y);
+	game->res.x = game->res.x / 32 - 1;
+	game->res.y = game->res.y / 32 - 1;
+	if (game->res.x < 1 || game->res.y < 1)
+		return (-1);
+	game->screen.size.x = game->res.x;
+	game->screen.size.y = game->res.y;
+	game->res.x *= 32;
+	game->res.y *= 32;
+	game->win = mlx_new_window(game->mlx, game->res.x, game->res.y, "so_long");
+	if (!game->win)
+		return (-1);
+	return (0);
 }
 
-void	fill_collect_img(t_img *pack, t_img *collect, t_img *grass)
+void	setup_textures_addr(t_game *game, t_img *pack)
 {
-	int		x;
-	int		y;
-	int		i;
-	char	*addr;
+	t_img	*img;
 
-	y = 0;
-	i = 0;
-	while (y < 32)
-	{
-		x = 128;
-		while (x < 160)
-		{
-			addr = pack->addr + (y * pack->width + x * (pack->bpp / 8));
-			if ((int)(*addr) == 0)
-				addr = grass->addr + i;
-			ft_memcpy(collect->addr + i, addr, 4);
-			i += 4;
-			x++;
-		}
-		y++;
-	}
+	img = &game->wall;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->grass;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->exit;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->collect;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->water;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	fill_texture_img(pack, &game->wall, 64, 64);
+	fill_texture_img(pack, &game->water, 32, 64);
+	fill_texture_img(pack, &game->grass, 0, 64);
+	fill_texture_img(pack, &game->exit, 64, 0);
+	fill_texture_img(pack, &game->collect, 128, 0);
 }
 
-void	fill_exit_img(t_img *pack, t_img *collect, t_img *grass)
+int	init_textures(t_game *game, char *pack_1)
 {
-	int		x;
-	int		y;
-	int		i;
-	char	*addr;
+	t_img	pack;
+	void	*mlx;
 
-	y = 0;
-	i = 0;
-	while (y < 32)
+	mlx = game->mlx;
+	pack.img = mlx_xpm_file_to_image(mlx, pack_1, &pack.width, &pack.height);
+	if (!pack.img)
+		return (-1);
+	game->water.img = mlx_new_image(mlx, 32, 32);
+	game->wall.img = mlx_new_image(mlx, 32, 32);
+	game->grass.img = mlx_new_image(mlx, 32, 32);
+	game->exit.img = mlx_new_image(mlx, 32, 32);
+	game->collect.img = mlx_new_image(mlx, 32, 32);
+	if (!game->wall.img || !game->grass.img || !game->exit.img
+		|| !game->collect.img || !game->water.img)
 	{
-		x = 64;
-		while (x < 96)
-		{
-			addr = pack->addr + (y * pack->width + x * (pack->bpp / 8));
-			if ((int)(*addr) == 0)
-				addr = grass->addr + i;
-			ft_memcpy(collect->addr + i, addr, 4);
-			i += 4;
-			x++;
-		}
-		y++;
+		mlx_destroy_image(game->mlx, pack.img);
+		return (-1);
 	}
+	pack.addr = mlx_get_data_addr(pack.img, &pack.bpp, &pack.width, &pack.end);
+	setup_textures_addr(game, &pack);
+	mlx_destroy_image(game->mlx, pack.img);
+	return (0);
 }
 
-void	fill_player_img(t_img *pack, t_img *player, t_img *grass)
+int	init_game(t_game *game)
 {
-	int		x;
-	int		y;
-	int		i;
-	char	*addr;
-
-	y = 0;
-	i = 0;
-	while (y < 32)
-	{
-		x = 32;
-		while (x < 64)
-		{
-			addr = pack->addr + (y * pack->width + x * (pack->bpp / 8));
-			if ((int)(*addr) == 0)
-				addr = grass->addr + i;
-			ft_memcpy(player->addr + i, addr, 4);
-			i += 4;
-			x++;
-		}
-		y++;
-	}
+	game->mlx = mlx_init();
+	if (!game->mlx || init_screen(game) || init_textures(game, "pack_1.xpm"))
+		return (-1);
+	return (0);
 }
 
 int	main(int ac, char **av)
 {
 	t_game	game;
-	t_img	txtrs1;
 	t_img	txtrs2;
-	t_img	grass;
-	t_img	wall;
-	t_img	water;
-	t_img	collect;
-	t_img	exit;
 	t_img	player;
-	int	x;
-	int	y;
+	int		x;
+	int		y;
+	int		i;
+	int		j;
 
-	if (parser(ac, av, &game))
+	if (parser(ac, av, &game) || init_game(&game))
 		return (0);
-	game.mlx = mlx_init();
-	mlx_get_screen_size(game.mlx, &game.res.x, &game.res.y);
-	game.res.x /= 32;
-	game.res.x--;
-	game.screen.size.x = game.res.x;
-	game.res.x *= 32;
-	game.res.y /= 32;
-	game.res.y--;
-	game.screen.size.y = game.res.y;
-	game.res.y *= 32;
-
-	game.win = mlx_new_window(game.mlx, game.res.x, game.res.y, "test");
-	txtrs1.img = mlx_xpm_file_to_image(game.mlx, "./test1.xpm", &txtrs1.width, &txtrs1.height);
-	txtrs1.addr = mlx_get_data_addr(txtrs1.img, &txtrs1.bpp, &txtrs1.width, &txtrs1.endian);
 	txtrs2.img = mlx_xpm_file_to_image(game.mlx, "./cat1.xpm", &txtrs2.width, &txtrs2.height);
-	txtrs2.addr = mlx_get_data_addr(txtrs2.img, &txtrs2.bpp, &txtrs2.width, &txtrs2.endian);
-	grass.img = mlx_new_image(game.mlx, 32, 32);
-	grass.addr = mlx_get_data_addr(grass.img, &grass.bpp, &grass.width, &grass.endian);
-	wall.img = mlx_new_image(game.mlx, 32, 32);
-	wall.addr = mlx_get_data_addr(wall.img, &wall.bpp, &wall.width, &wall.endian);
-	water.img = mlx_new_image(game.mlx, 32, 32);
-	water.addr = mlx_get_data_addr(water.img, &water.bpp, &water.width, &water.endian);
-	collect.img = mlx_new_image(game.mlx, 32, 32);
-	collect.addr = mlx_get_data_addr(collect.img, &collect.bpp, &collect.width, &collect.endian);
-	exit.img = mlx_new_image(game.mlx, 32, 32);
-	exit.addr = mlx_get_data_addr(exit.img, &exit.bpp, &exit.width, &exit.endian);
+	txtrs2.addr = mlx_get_data_addr(txtrs2.img, &txtrs2.bpp, &txtrs2.width, &txtrs2.end);
 	player.img = mlx_new_image(game.mlx, 32, 32);
-	player.addr = mlx_get_data_addr(player.img, &player.bpp, &player.width, &player.endian);
-	fill_grass_img(&txtrs1, &grass);
-	fill_wall_img(&txtrs1, &wall);
-	fill_water_img(&txtrs1, &water);
-	fill_collect_img(&txtrs1, &collect, &grass);
-	fill_exit_img(&txtrs1, &exit, &grass);
-	fill_player_img(&txtrs2, &player, &grass);
+	player.addr = mlx_get_data_addr(player.img, &player.bpp, &player.width, &player.end);
+	fill_texture_img(&txtrs2, &player, 32, 0);
 
 	game.screen.map = malloc(sizeof(char *) * (game.screen.size.y + 1));
 	if (!game.screen.map)
@@ -553,9 +526,7 @@ int	main(int ac, char **av)
 		(game.screen.map)[y][game.screen.size.x] = '\0';
 		y++;
 	}
-
-	int	i;
-	int	j = 0;
+	j = 0;
 	if (game.width <= game.screen.size.x)
 	{
 		i = game.screen.size.x - game.width;
@@ -590,8 +561,11 @@ int	main(int ac, char **av)
 		}
 	}
 	
-	ft_putendl_fd("screen :", 1);
-	print_map(game.screen.map, 1);
+
+	game.screen.img.img = mlx_new_image(game.mlx, game.res.x, game.res.y);
+	game.screen.img.addr = mlx_get_data_addr(game.screen.img.img, &game.screen.img.bpp, &game.screen.img.width, &game.screen.img.end);
+//	ft_putendl_fd("screen :", 1);
+//	print_map(game.screen.map, 1);
 	y = 0;
 	char c;
 	while (y  < game.res.y)
@@ -601,21 +575,22 @@ int	main(int ac, char **av)
 		{
 			c = (game.screen.map)[y / 32][x / 32];
 			if (c == 'W')
-				mlx_put_image_to_window(game.mlx, game.win, water.img, x, y);
+				put_img_to_img(&game.screen.img, &game.water, x, y);
 			else if (c == '1')
-				mlx_put_image_to_window(game.mlx, game.win, wall.img, x, y);
-			else if (c == 'C')
-				mlx_put_image_to_window(game.mlx, game.win, collect.img, x, y);
-			else if (c == 'E')
-				mlx_put_image_to_window(game.mlx, game.win, exit.img, x, y);
-			else if (c == 'P')
-				mlx_put_image_to_window(game.mlx, game.win, player.img, x, y);
+				put_img_to_img(&game.screen.img, &game.wall, x, y);
 			else
-				mlx_put_image_to_window(game.mlx, game.win, grass.img, x, y);
+				put_img_to_img(&game.screen.img, &game.grass, x, y);
+			if (c == 'C')
+				put_img_to_img(&game.screen.img, &game.collect, x, y);
+			else if (c == 'E')
+				put_img_to_img(&game.screen.img, &game.exit, x, y);
+			else if (c == 'P')
+				put_img_to_img(&game.screen.img, &player, x, y);
 			x += 32;
 		}
 		y += 32;
 	}
+	mlx_put_image_to_window(game.mlx, game.win, game.screen.img.img, 0, 0);
 	mlx_loop(game.mlx);
 	ft_free_tab((void **)(game.map));
 	return (0);
