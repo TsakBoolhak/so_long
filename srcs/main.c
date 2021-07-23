@@ -194,7 +194,7 @@ void	handle_valid_char(char c, int i, t_game *game, t_parse *parse)
 	if (c == 'P')
 	{
 		game->player.pos.x = i;
-		game->player.pos.y = game->width - 1;
+		game->player.pos.y = game->height - 1;
 	}
 	else if (c == 'C')
 		(parse->collectible)++;
@@ -332,7 +332,6 @@ int	map_parser(int fd, t_game *game, t_parse *parse)
 void	init_parsing(t_game *game, t_parse *parse)
 {
 	ft_memset(parse, 0, sizeof(*parse));
-	ft_memset(game, 0, sizeof(*game));
 	game->player.pos.x = -1;
 	game->player.pos.y = -1;
 }
@@ -417,8 +416,34 @@ void	put_img_to_img(t_img *dst, t_img *src, int x_start, int y_start)
 	}
 }
 
+int	create_screen_map(t_game *game)
+{
+	char	**map;
+	int		y;
+
+	map = malloc(sizeof(char *) * (game->screen.size.y + 1));
+	if (!map)
+		return (-1);
+	map[game->screen.size.y] = NULL;
+	y = 0;
+	while (y < game->screen.size.y)
+	{
+		map[y] = malloc(sizeof(char) * (game->screen.size.x + 1));
+		if (!map[y])
+		{
+			ft_free_tab((void **)(map));
+			return (-1);
+		}
+		map[y][game->screen.size.x] = '\0';
+		y++;
+	}
+	game->screen.map = map;
+	return (0);
+}
 int	init_screen(t_game *game)
 {
+	t_img	img;
+
 	mlx_get_screen_size(game->mlx, &game->res.x, &game->res.y);
 	game->res.x = game->res.x / 32 - 1;
 	game->res.y = game->res.y / 32 - 1;
@@ -429,8 +454,11 @@ int	init_screen(t_game *game)
 	game->res.x *= 32;
 	game->res.y *= 32;
 	game->win = mlx_new_window(game->mlx, game->res.x, game->res.y, "so_long");
-	if (!game->win)
+	img.img = mlx_new_image(game->mlx, game->res.x, game->res.y);
+	if (!game->win || !img.img || create_screen_map(game))
 		return (-1);
+	img.addr = mlx_get_data_addr(img.img, &img.bpp, &img.width, &img.end);
+	game->screen.img = img;
 	return (0);
 }
 
@@ -481,56 +509,219 @@ int	init_textures(t_game *game, char *pack_1)
 	return (0);
 }
 
+int	create_player_textures(t_game *game, t_character *player)
+{
+	player->front_1.img = mlx_new_image(game->mlx, 32, 32);
+	player->front_2.img = mlx_new_image(game->mlx, 32, 32);
+	player->front_3.img = mlx_new_image(game->mlx, 32, 32);
+	player->back_1.img = mlx_new_image(game->mlx, 32, 32);
+	player->back_2.img = mlx_new_image(game->mlx, 32, 32);
+	player->back_3.img = mlx_new_image(game->mlx, 32, 32);
+	player->right_1.img = mlx_new_image(game->mlx, 32, 32);
+	player->right_2.img = mlx_new_image(game->mlx, 32, 32);
+	player->right_3.img = mlx_new_image(game->mlx, 32, 32);
+	player->left_1.img = mlx_new_image(game->mlx, 32, 32);
+	player->left_2.img = mlx_new_image(game->mlx, 32, 32);
+	player->left_3.img = mlx_new_image(game->mlx, 32, 32);
+	if (!player->front_1.img || !player->front_2.img || !player->front_3.img
+		|| !player->back_1.img || !player->back_2.img || !player->back_3.img
+		|| !player->right_1.img || !player->right_2.img || !player->right_3.img
+		|| !player->left_1.img || !player->left_2.img || !player->left_3.img)
+		return (-1);
+	return (0);
+}
+
+void	fill_player_texture(t_img *pack, t_character *player)
+{
+	fill_texture_img(pack, &player->front_1, 32, 0);
+	fill_texture_img(pack, &player->front_2, 0, 0);
+	fill_texture_img(pack, &player->front_3, 64, 0);
+	fill_texture_img(pack, &player->back_1, 32, 96);
+	fill_texture_img(pack, &player->back_2, 0, 96);
+	fill_texture_img(pack, &player->back_3, 64, 96);
+	fill_texture_img(pack, &player->right_1, 32, 64);
+	fill_texture_img(pack, &player->right_2, 0, 64);
+	fill_texture_img(pack, &player->right_3, 64, 64);
+	fill_texture_img(pack, &player->left_1, 32, 32);
+	fill_texture_img(pack, &player->left_2, 0, 32);
+	fill_texture_img(pack, &player->left_3, 64, 32);
+}
+
+void	setup_player_addr(t_game *game, t_img *tmp)
+{
+	t_img	*img;
+
+	tmp->addr = mlx_get_data_addr(tmp->img, &tmp->bpp, &tmp->width, &tmp->end);
+	img = &game->player.front_2;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.front_3;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.back_1;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.back_2;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.back_3;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.right_1;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.right_2;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.right_3;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.left_1;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.left_2;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.left_3;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+}
+
+int	init_player(t_game *game, char *pack_2)
+{
+	t_img		pack;
+	void		*mlx;
+	t_character	*player;
+
+	mlx = game->mlx;
+	player = &game->player;
+	pack.img = mlx_xpm_file_to_image(mlx, pack_2, &pack.width, &pack.height);
+	if (!pack.img)
+		return (-1);
+	if (create_player_textures(game, player))
+	{
+		mlx_destroy_image(game->mlx, pack.img);
+		return (-1);
+	}
+	pack.addr = mlx_get_data_addr(pack.img, &pack.bpp, &pack.width, &pack.end);
+	setup_player_addr(game, &player->front_1);
+	fill_player_texture(&pack, player);
+	mlx_destroy_image(game->mlx, pack.img);
+	return (0);
+}
+
 int	init_game(t_game *game)
 {
 	game->mlx = mlx_init();
-	if (!game->mlx || init_screen(game) || init_textures(game, "pack_1.xpm"))
+	if (!game->mlx || init_screen(game) || init_textures(game, "pack_1.xpm")
+		|| init_player(game, "cat1.xpm"))
 		return (-1);
+	return (0);
+}
+
+void	free_player_datas(t_game *game, t_character *player)
+{
+	if (player->front_1.img)
+		mlx_destroy_image(game->mlx, player->front_1.img);
+	if (player->front_2.img)
+		mlx_destroy_image(game->mlx, player->front_2.img);
+	if (player->front_3.img)
+		mlx_destroy_image(game->mlx, player->front_3.img);
+	if (player->back_1.img)
+		mlx_destroy_image(game->mlx, player->back_1.img);
+	if (player->back_2.img)
+		mlx_destroy_image(game->mlx, player->back_2.img);
+	if (player->back_3.img)
+		mlx_destroy_image(game->mlx, player->back_3.img);
+	if (player->right_1.img)
+		mlx_destroy_image(game->mlx, player->right_1.img);
+	if (player->right_2.img)
+		mlx_destroy_image(game->mlx, player->right_2.img);
+	if (player->right_3.img)
+		mlx_destroy_image(game->mlx, player->right_3.img);
+	if (player->left_1.img)
+		mlx_destroy_image(game->mlx, player->left_1.img);
+	if (player->left_2.img)
+		mlx_destroy_image(game->mlx, player->left_2.img);
+	if (player->left_3.img)
+		mlx_destroy_image(game->mlx, player->left_3.img);
+}
+
+void	free_all_datas(t_game *game)
+{
+	if (game->water.img)
+		mlx_destroy_image(game->mlx, game->water.img);
+	if (game->wall.img)
+		mlx_destroy_image(game->mlx, game->wall.img);
+	if (game->grass.img)
+		mlx_destroy_image(game->mlx, game->grass.img);
+	if (game->exit.img)
+		mlx_destroy_image(game->mlx, game->exit.img);
+	if (game->collect.img)
+		mlx_destroy_image(game->mlx, game->collect.img);
+	if (game->screen.img.img)
+		mlx_destroy_image(game->mlx, game->screen.img.img);
+	ft_free_tab((void **)(game->screen.map));
+	ft_free_tab((void **)(game->map));
+	free_player_datas(game, &game->player);
+	if (game->win)
+		mlx_destroy_window(game->mlx, game->win);
+	if (game->mlx)
+	{
+		mlx_destroy_display(game->mlx);
+		free(game->mlx);
+	}
+}
+
+int	handle_keypress(int key, t_game *game)
+{
+	if (key == 65307)
+		mlx_loop_end(game->mlx);
+	return (0);
+}
+
+int	render_frame(t_game *game)
+{
+	char c;
+	int	x;
+	int	y;
+
+	y = 0;
+	while (y  < game->res.y)
+	{
+		x = 0;
+		while (x < game->res.x)
+		{
+			c = (game->screen.map)[y / 32][x / 32];
+			if (c == 'W')
+				put_img_to_img(&game->screen.img, &game->water, x, y);
+			else if (c == '1')
+				put_img_to_img(&game->screen.img, &game->wall, x, y);
+			else
+				put_img_to_img(&game->screen.img, &game->grass, x, y);
+			if (c == 'C')
+				put_img_to_img(&game->screen.img, &game->collect, x, y);
+			else if (c == 'E')
+				put_img_to_img(&game->screen.img, &game->exit, x, y);
+			if (x == game->screen.player.x * 32 && y == game->screen.player.y * 32)
+				put_img_to_img(&game->screen.img, &game->player.front_1, x, y);
+			x += 32;
+		}
+		y += 32;
+	}
+	mlx_put_image_to_window(game->mlx, game->win, game->screen.img.img, 0, 0);
 	return (0);
 }
 
 int	main(int ac, char **av)
 {
 	t_game	game;
-	t_img	txtrs2;
-	t_img	player;
-	int		x;
 	int		y;
 	int		i;
 	int		j;
 
+	ft_memset(&game, 0, sizeof(game));
 	if (parser(ac, av, &game) || init_game(&game))
+	{
+		free_all_datas(&game);
 		return (0);
-	txtrs2.img = mlx_xpm_file_to_image(game.mlx, "./cat1.xpm", &txtrs2.width, &txtrs2.height);
-	txtrs2.addr = mlx_get_data_addr(txtrs2.img, &txtrs2.bpp, &txtrs2.width, &txtrs2.end);
-	player.img = mlx_new_image(game.mlx, 32, 32);
-	player.addr = mlx_get_data_addr(player.img, &player.bpp, &player.width, &player.end);
-	fill_texture_img(&txtrs2, &player, 32, 0);
+	}
 
-	game.screen.map = malloc(sizeof(char *) * (game.screen.size.y + 1));
-	if (!game.screen.map)
-	{
-		//handle
-		;
-	}
-	(game.screen.map)[game.screen.size.y] = NULL;
-	y = 0;
-	while (y < game.screen.size.y)
-	{
-		(game.screen.map)[y] = malloc(sizeof(char) * (game.screen.size.x + 1));
-		if (!((game.screen.map)[y]))
-		{
-			//handle
-			;
-		}
-		(game.screen.map)[y][game.screen.size.x] = '\0';
-		y++;
-	}
 	j = 0;
 	if (game.width <= game.screen.size.x)
 	{
 		i = game.screen.size.x - game.width;
 		y = 0;
+		game.screen.player.x = game.player.pos.x + i / 2 + (i % 2 != 0);
 		while (y < game.screen.size.y)
 		{
 			ft_memset((game.screen.map)[y], 'W', (i / 2) + (i % 2 != 0));
@@ -538,6 +729,7 @@ int	main(int ac, char **av)
 			{
 				if (!j)
 					j = game.screen.size.y - game.height;
+				game.screen.player.y = game.player.pos.y + j / 2 + (j % 2 != 0);
 				if (y < (j / 2) + (j % 2 != 0) || y >= game.screen.size.y - j / 2)
 					ft_memset((game.screen.map)[y] + (i / 2) + (i % 2 != 0), 'W', game.screen.size.x - (i / 2) - (i % 2 != 0));
 				else
@@ -562,36 +754,12 @@ int	main(int ac, char **av)
 	}
 	
 
-	game.screen.img.img = mlx_new_image(game.mlx, game.res.x, game.res.y);
-	game.screen.img.addr = mlx_get_data_addr(game.screen.img.img, &game.screen.img.bpp, &game.screen.img.width, &game.screen.img.end);
 //	ft_putendl_fd("screen :", 1);
 //	print_map(game.screen.map, 1);
-	y = 0;
-	char c;
-	while (y  < game.res.y)
-	{
-		x = 0;
-		while (x < game.res.x)
-		{
-			c = (game.screen.map)[y / 32][x / 32];
-			if (c == 'W')
-				put_img_to_img(&game.screen.img, &game.water, x, y);
-			else if (c == '1')
-				put_img_to_img(&game.screen.img, &game.wall, x, y);
-			else
-				put_img_to_img(&game.screen.img, &game.grass, x, y);
-			if (c == 'C')
-				put_img_to_img(&game.screen.img, &game.collect, x, y);
-			else if (c == 'E')
-				put_img_to_img(&game.screen.img, &game.exit, x, y);
-			else if (c == 'P')
-				put_img_to_img(&game.screen.img, &player, x, y);
-			x += 32;
-		}
-		y += 32;
-	}
-	mlx_put_image_to_window(game.mlx, game.win, game.screen.img.img, 0, 0);
+	mlx_loop_hook(game.mlx, &render_frame, &game);
+	mlx_hook(game.win, 2, 1L << 0, &handle_keypress, &game);
+	mlx_hook(game.win, 33, 1L << 17, &mlx_loop_end, game.mlx);
 	mlx_loop(game.mlx);
-	ft_free_tab((void **)(game.map));
+	free_all_datas(&game);
 	return (0);
 }
