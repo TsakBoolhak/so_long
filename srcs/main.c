@@ -51,6 +51,8 @@ typedef struct s_game
 {
 	int			height;
 	int			width;
+	int			moves;
+	int			collect_nb;
 	char		**map;
 	t_screen	screen;
 	t_coord		res;
@@ -298,6 +300,7 @@ void	last_parsing_checks(char *line, t_game *game, t_parse *parse)
 	}
 	if (!parse->collectible || !parse->exit || game->player.pos.x == -1)
 		print_last_error(parse, game->map, game->player.pos.x);
+	game->collect_nb = parse->collectible;
 }
 
 int	map_parser(int fd, t_game *game, t_parse *parse)
@@ -662,10 +665,162 @@ void	free_all_datas(t_game *game)
 	}
 }
 
+void	move_up(t_game *game)
+{
+	char	**map;
+	t_coord	pos;
+	char	c;
+
+	map = game->screen.map;
+	pos.x = game->screen.player.x;
+	pos.y = game->screen.player.y - 1;
+	game->player.dir = 2;
+	c = map[pos.y][pos.x];
+	if (c == '1')
+		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
+	else
+	{
+		game->moves++;
+		game->screen.player.y--;
+	}
+	if (c == 'C')
+	{
+		ft_putstr_fd("Hey, this stuff seem usefull, let's keep it ", 1);
+		game->collect_nb--;
+		map[pos.y][pos.x] = '0';
+	}
+	else if (c == 'E')
+	{
+		if (game->collect_nb)
+			ft_putstr_fd("Hmmm, i think there are still things to do here ", 1);
+		else
+			ft_putstr_fd("Yay! My job is done here! ", 1);
+	}
+	ft_putstr_fd("Total moves : ", 1);
+	ft_putnbr_fd(game->moves, 1);
+	ft_putendl_fd("", 1);
+}
+
+void	move_down(t_game *game)
+{
+	char	**map;
+	t_coord	pos;
+	char	c;
+
+	map = game->screen.map;
+	game->player.dir = 0;
+	pos.x = game->screen.player.x;
+	pos.y = game->screen.player.y + 1;
+	c = map[pos.y][pos.x];
+	if (c == '1')
+		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
+	else
+	{
+		game->moves++;
+		game->screen.player.y++;
+	}
+	if (c == 'C')
+	{
+		ft_putstr_fd("Hey, this stuff seem usefull, let's keep it ", 1);
+		game->collect_nb--;
+		map[pos.y][pos.x] = '0';
+	}
+	else if (c == 'E')
+	{
+		if (game->collect_nb)
+			ft_putstr_fd("Hmmm, i think there are still things to do here ", 1);
+		else
+			ft_putstr_fd("Yay! My job is done here! ", 1);
+	}
+	ft_putstr_fd("Total moves : ", 1);
+	ft_putnbr_fd(game->moves, 1);
+	ft_putendl_fd("", 1);
+}
+
+void	move_right(t_game *game)
+{
+	char	**map;
+	t_coord	pos;
+	char	c;
+
+	map = game->screen.map;
+	game->player.dir = 1;
+	pos.x = game->screen.player.x + 1;
+	pos.y = game->screen.player.y;
+	c = map[pos.y][pos.x];
+	if (c == '1')
+		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
+	else
+	{
+		game->moves++;
+		game->screen.player.x++;
+	}
+	if (c == 'C')
+	{
+		ft_putstr_fd("Hey, this stuff seem usefull, let's keep it ", 1);
+		game->collect_nb--;
+		map[pos.y][pos.x] = '0';
+	}
+	else if (c == 'E')
+	{
+		if (game->collect_nb)
+			ft_putstr_fd("Hmmm, i think there are still things to do here ", 1);
+		else
+			ft_putstr_fd("Yay! My job is done here! ", 1);
+	}
+	ft_putstr_fd("Total moves : ", 1);
+	ft_putnbr_fd(game->moves, 1);
+	ft_putendl_fd("", 1);
+}
+
+void	move_left(t_game *game)
+{
+	char	**map;
+	t_coord	pos;
+	char	c;
+
+	map = game->screen.map;
+	game->player.dir = 3;
+	pos.x = game->screen.player.x - 1;
+	pos.y = game->screen.player.y;
+	c = map[pos.y][pos.x];
+	if (c == '1')
+		ft_putstr_fd("Outch, That's a wall! (doesn't count as a move)\t", 1);
+	else
+	{
+		game->moves++;
+		game->screen.player.x--;
+	}
+	if (c == 'C')
+	{
+		ft_putstr_fd("Hey, this stuff seem usefull, let's keep it\t", 1);
+		game->collect_nb--;
+		map[pos.y][pos.x] = '0';
+	}
+	else if (c == 'E')
+	{
+		if (game->collect_nb)
+			ft_putstr_fd("Hmmm, i think there are still things to do here\t", 1);
+		else
+			ft_putstr_fd("Yay! My job is done here!\t", 1);
+	}
+	ft_putstr_fd("Total moves : ", 1);
+	ft_putnbr_fd(game->moves, 1);
+	ft_putendl_fd("", 1);
+}
+
 int	handle_keypress(int key, t_game *game)
 {
 	if (key == 65307)
 		mlx_loop_end(game->mlx);
+	else if (key == 122)
+		move_up(game);
+	else if (key == 115)
+		move_down(game);
+	else if (key == 113)
+		move_left(game);
+	else if (key == 100)
+		move_right(game);
 	return (0);
 }
 
@@ -693,7 +848,16 @@ int	render_frame(t_game *game)
 			else if (c == 'E')
 				put_img_to_img(&game->screen.img, &game->exit, x, y);
 			if (x == game->screen.player.x * 32 && y == game->screen.player.y * 32)
-				put_img_to_img(&game->screen.img, &game->player.front_1, x, y);
+			{
+				if (game->player.dir == 0)
+					put_img_to_img(&game->screen.img, &game->player.front_1, x, y);
+				else if (game->player.dir == 1)
+					put_img_to_img(&game->screen.img, &game->player.right_1, x, y);
+				else if (game->player.dir == 2)
+					put_img_to_img(&game->screen.img, &game->player.back_1, x, y);
+				else
+					put_img_to_img(&game->screen.img, &game->player.left_1, x, y);
+			}
 			x += 32;
 		}
 		y += 32;
