@@ -443,6 +443,7 @@ int	create_screen_map(t_game *game)
 	game->screen.map = map;
 	return (0);
 }
+
 int	init_screen(t_game *game)
 {
 	t_img	img;
@@ -866,12 +867,75 @@ int	render_frame(t_game *game)
 	return (0);
 }
 
+void	get_map_position(t_game *game, t_coord *screen_pos, t_coord *map_pos, t_coord *to_draw)
+{
+	if (game->width < game->screen.size.x - 1)
+	{
+		screen_pos->x = ((game->screen.size.x - game->width) % 2 != 0);
+		screen_pos->x += (game->screen.size.x - game->width) / 2;
+		map_pos->x = 0;
+		to_draw->x = game->width;
+	}
+	else
+	{
+		if (game->player.pos.x < game->screen.size.x - 4)
+		{
+			screen_pos->x = 1;
+			map_pos->x = 0;
+			to_draw->x = game->screen.size.x - 1 + (game->player.pos.x == game->screen.size.x - 3);
+		}
+		else if (game->width - game->player.pos.x < game->screen.size.x - 1)
+		{
+			screen_pos->x = 0;
+			map_pos->x = game->width - game->screen.size.x + 1;
+			to_draw->x = game->width - map_pos->x;
+		}
+		else
+		{
+			screen_pos->x = 0;
+			map_pos->x = game->player.pos.x - game->screen.size.x / 2 - 1;
+			to_draw->x = game->screen.size.x;
+		}
+	}
+
+	if (game->height < game->screen.size.y - 1)
+	{
+		screen_pos->y = ((game->screen.size.y - game->height) % 2 != 0);
+		screen_pos->y += (game->screen.size.y - game->height) / 2;
+		map_pos->y = 0;
+		to_draw->y = game->height - 1;
+	}
+	else
+	{
+		if (game->player.pos.y < game->screen.size.y - 4)
+		{
+			screen_pos->y = 1;
+			map_pos->y = 0;
+			to_draw->y = game->screen.size.y - 1 + (game->player.pos.y == game->screen.size.y - 3);
+		}
+		else if (game->height - game->player.pos.y < game->screen.size.y - 1)
+		{
+			screen_pos->y = 0;
+			map_pos->y = game->height - game->screen.size.y + 1;
+			to_draw->y = game->height - map_pos->y -1;
+		}
+		else
+		{
+			screen_pos->y = 0;
+			map_pos->y = game->player.pos.y - game->screen.size.y / 2 - 1;
+			to_draw->y = game->screen.size.y;
+		}
+	}
+}
+
+#include <stdio.h>
+
 int	main(int ac, char **av)
 {
 	t_game	game;
 	int		y;
-	int		i;
-	int		j;
+//	int		i;
+//	int		j;
 
 	ft_memset(&game, 0, sizeof(game));
 	if (parser(ac, av, &game) || init_game(&game))
@@ -880,8 +944,39 @@ int	main(int ac, char **av)
 		return (0);
 	}
 
-	j = 0;
-	if (game.width <= game.screen.size.x)
+	t_coord map_pos;
+	t_coord screen_pos;
+	t_coord to_draw;
+
+	get_map_position(&game, &screen_pos, &map_pos, &to_draw);
+	printf("screen_pos :\tx %d\ty %d\nmap_pos\t\tx %d\ty %d\nto_draw\t\tx %d\ty %d\n", screen_pos.x, screen_pos.y, map_pos.x, map_pos.y, to_draw.x, to_draw.y);
+	printf("screen.size\tx %d\ty%d\nmap size\tx %d\ty %d\nplayer.pos\tx %d\ty %d\n", game.screen.size.x, game.screen.size.y, game.width, game.height, game.player.pos.x, game.player.pos.y);
+	y = 0;
+	char **map;
+	char *ptr;
+	map = game.screen.map;
+	while (y < game.screen.size.y)
+	{
+		printf("y = %d\n", y);
+		if (y < screen_pos.y || y > screen_pos.y + to_draw.y)
+			ft_memset(map[y], 'W', game.screen.size.x);
+		else
+		{
+			ft_memset(map[y], 'W', screen_pos.x);
+			ft_memcpy(map[y] + screen_pos.x, (game.map)[map_pos.y + y - screen_pos.y] + map_pos.x, to_draw.x);
+			ft_memset(map[y] + screen_pos.x + to_draw.x, 'W', game.screen.size.x - screen_pos.x - to_draw.x);
+			ptr = ft_strchr(map[y], 'P');
+			if (ptr)
+			{
+				game.screen.player.x = (int)(ptr - map[y]);
+				game.screen.player.y = y;
+			}
+		}
+		y++;
+	}
+
+/*	
+if (game.width <= game.screen.size.x)
 	{
 		i = game.screen.size.x - game.width;
 		y = 0;
@@ -916,6 +1011,7 @@ int	main(int ac, char **av)
 			y++;
 		}
 	}
+*/
 	
 
 //	ft_putendl_fd("screen :", 1);
