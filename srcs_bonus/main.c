@@ -22,10 +22,19 @@ typedef struct s_img
 
 typedef struct s_character
 {
-	t_img	front;
-	t_img	back;
-	t_img	right;
-	t_img	left;
+	t_img	front_1;
+	t_img	front_2;
+	t_img	front_3;
+	t_img	back_1;
+	t_img	back_2;
+	t_img	back_3;
+	t_img	right_1;
+	t_img	right_2;
+	t_img	right_3;
+	t_img	left_1;
+	t_img	left_2;
+	t_img	left_3;
+	int		state;
 	int		dir;
 	t_coord	pos;
 }t_character;
@@ -44,8 +53,6 @@ typedef struct s_game
 	int			width;
 	int			moves;
 	int			collect_nb;
-	int			quit;
-	int			quit_time;
 	char		**map;
 	t_screen	screen;
 	t_coord		res;
@@ -508,35 +515,68 @@ int	init_textures(t_game *game, char *pack_1)
 
 int	create_player_textures(t_game *game, t_character *player)
 {
-	player->front.img = mlx_new_image(game->mlx, 32, 32);
-	player->back.img = mlx_new_image(game->mlx, 32, 32);
-	player->right.img = mlx_new_image(game->mlx, 32, 32);
-	player->left.img = mlx_new_image(game->mlx, 32, 32);
-	if (!player->front.img || !player->back.img || !player->right.img
-		|| !player->left.img)
+	player->front_1.img = mlx_new_image(game->mlx, 32, 32);
+	player->front_2.img = mlx_new_image(game->mlx, 32, 32);
+	player->front_3.img = mlx_new_image(game->mlx, 32, 32);
+	player->back_1.img = mlx_new_image(game->mlx, 32, 32);
+	player->back_2.img = mlx_new_image(game->mlx, 32, 32);
+	player->back_3.img = mlx_new_image(game->mlx, 32, 32);
+	player->right_1.img = mlx_new_image(game->mlx, 32, 32);
+	player->right_2.img = mlx_new_image(game->mlx, 32, 32);
+	player->right_3.img = mlx_new_image(game->mlx, 32, 32);
+	player->left_1.img = mlx_new_image(game->mlx, 32, 32);
+	player->left_2.img = mlx_new_image(game->mlx, 32, 32);
+	player->left_3.img = mlx_new_image(game->mlx, 32, 32);
+	if (!player->front_1.img || !player->front_2.img || !player->front_3.img
+		|| !player->back_1.img || !player->back_2.img || !player->back_3.img
+		|| !player->right_1.img || !player->right_2.img || !player->right_3.img
+		|| !player->left_1.img || !player->left_2.img || !player->left_3.img)
 		return (-1);
 	return (0);
 }
 
 void	fill_player_texture(t_img *pack, t_character *player)
 {
-	fill_texture_img(pack, &player->front, 32, 0);
-	fill_texture_img(pack, &player->back, 32, 96);
-	fill_texture_img(pack, &player->right, 32, 64);
-	fill_texture_img(pack, &player->left, 32, 32);
+	fill_texture_img(pack, &player->front_1, 32, 0);
+	fill_texture_img(pack, &player->front_2, 0, 0);
+	fill_texture_img(pack, &player->front_3, 64, 0);
+	fill_texture_img(pack, &player->back_1, 32, 96);
+	fill_texture_img(pack, &player->back_2, 0, 96);
+	fill_texture_img(pack, &player->back_3, 64, 96);
+	fill_texture_img(pack, &player->right_1, 32, 64);
+	fill_texture_img(pack, &player->right_2, 0, 64);
+	fill_texture_img(pack, &player->right_3, 64, 64);
+	fill_texture_img(pack, &player->left_1, 32, 32);
+	fill_texture_img(pack, &player->left_2, 0, 32);
+	fill_texture_img(pack, &player->left_3, 64, 32);
 }
 
-void	setup_player_addr(t_game *game)
+void	setup_player_addr(t_game *game, t_img *tmp)
 {
 	t_img	*img;
 
-	img = &game->player.front;
+	tmp->addr = mlx_get_data_addr(tmp->img, &tmp->bpp, &tmp->width, &tmp->end);
+	img = &game->player.front_2;
 	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
-	img = &game->player.back;
+	img = &game->player.front_3;
 	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
-	img = &game->player.right;
+	img = &game->player.back_1;
 	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
-	img = &game->player.left;
+	img = &game->player.back_2;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.back_3;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.right_1;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.right_2;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.right_3;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.left_1;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.left_2;
+	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
+	img = &game->player.left_3;
 	img->addr = mlx_get_data_addr(img->img, &img->bpp, &img->width, &img->end);
 }
 
@@ -557,7 +597,7 @@ int	init_player(t_game *game, char *pack_2)
 		return (-1);
 	}
 	pack.addr = mlx_get_data_addr(pack.img, &pack.bpp, &pack.width, &pack.end);
-	setup_player_addr(game);
+	setup_player_addr(game, &player->front_1);
 	fill_player_texture(&pack, player);
 	mlx_destroy_image(game->mlx, pack.img);
 	return (0);
@@ -574,14 +614,30 @@ int	init_game(t_game *game)
 
 void	free_player_datas(t_game *game, t_character *player)
 {
-	if (player->front.img)
-		mlx_destroy_image(game->mlx, player->front.img);
-	if (player->back.img)
-		mlx_destroy_image(game->mlx, player->back.img);
-	if (player->right.img)
-		mlx_destroy_image(game->mlx, player->right.img);
-	if (player->left.img)
-		mlx_destroy_image(game->mlx, player->left.img);
+	if (player->front_1.img)
+		mlx_destroy_image(game->mlx, player->front_1.img);
+	if (player->front_2.img)
+		mlx_destroy_image(game->mlx, player->front_2.img);
+	if (player->front_3.img)
+		mlx_destroy_image(game->mlx, player->front_3.img);
+	if (player->back_1.img)
+		mlx_destroy_image(game->mlx, player->back_1.img);
+	if (player->back_2.img)
+		mlx_destroy_image(game->mlx, player->back_2.img);
+	if (player->back_3.img)
+		mlx_destroy_image(game->mlx, player->back_3.img);
+	if (player->right_1.img)
+		mlx_destroy_image(game->mlx, player->right_1.img);
+	if (player->right_2.img)
+		mlx_destroy_image(game->mlx, player->right_2.img);
+	if (player->right_3.img)
+		mlx_destroy_image(game->mlx, player->right_3.img);
+	if (player->left_1.img)
+		mlx_destroy_image(game->mlx, player->left_1.img);
+	if (player->left_2.img)
+		mlx_destroy_image(game->mlx, player->left_2.img);
+	if (player->left_3.img)
+		mlx_destroy_image(game->mlx, player->left_3.img);
 }
 
 void	free_all_datas(t_game *game)
@@ -698,8 +754,6 @@ void	scroll_screen(t_game *game)
 	}
 }
 
-int	render_frame(t_game *game);
-
 void	move_up(t_game *game)
 {
 	char	**map;
@@ -727,14 +781,7 @@ void	move_up(t_game *game)
 		if (game->collect_nb)
 			ft_putstr_fd("Hmmm, i think there are still things to do here ", 1);
 		else
-		{
-			game->moves++;
-			ft_putstr_fd("Yay! My job is done here!\n", 1);
-			ft_putstr_fd("Congratulations, you completed this map with ", 1);
-			ft_putnbr_fd(game->moves, 1);
-			ft_putstr_fd(" moves!\n", 1);
-			game->quit = 1;
-		}
+			ft_putstr_fd("Yay! My job is done here! ", 1);
 	}
 	if (c == '1')
 		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
@@ -745,12 +792,9 @@ void	move_up(t_game *game)
 		game->player.pos.y--;
 		scroll_screen(game);
 	}
-	if (!game->quit)
-	{
-		ft_putstr_fd("Total moves : ", 1);
-		ft_putnbr_fd(game->moves, 1);
-		ft_putendl_fd("", 1);
-	}
+	ft_putstr_fd("Total moves : ", 1);
+	ft_putnbr_fd(game->moves, 1);
+	ft_putendl_fd("", 1);
 }
 
 void	move_down(t_game *game)
@@ -780,14 +824,7 @@ void	move_down(t_game *game)
 		if (game->collect_nb)
 			ft_putstr_fd("Hmmm, i think there are still things to do here ", 1);
 		else
-		{
-			game->moves++;
-			ft_putstr_fd("Yay! My job is done here!\n", 1);
-			ft_putstr_fd("Congratulations, you completed this map with ", 1);
-			ft_putnbr_fd(game->moves, 1);
-			ft_putstr_fd(" moves!\n", 1);
-			game->quit = 1;
-		}
+			ft_putstr_fd("Yay! My job is done here! ", 1);
 	}
 	if (c == '1')
 		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
@@ -798,12 +835,9 @@ void	move_down(t_game *game)
 		game->player.pos.y++;
 		scroll_screen(game);
 	}
-	if (!game->quit)
-	{
-		ft_putstr_fd("Total moves : ", 1);
-		ft_putnbr_fd(game->moves, 1);
-		ft_putendl_fd("", 1);
-	}
+	ft_putstr_fd("Total moves : ", 1);
+	ft_putnbr_fd(game->moves, 1);
+	ft_putendl_fd("", 1);
 }
 
 void	move_right(t_game *game)
@@ -833,14 +867,7 @@ void	move_right(t_game *game)
 		if (game->collect_nb)
 			ft_putstr_fd("Hmmm, i think there are still things to do here ", 1);
 		else
-		{
-			game->moves++;
-			ft_putstr_fd("Yay! My job is done here!\n", 1);
-			ft_putstr_fd("Congratulations, you completed this map with ", 1);
-			ft_putnbr_fd(game->moves, 1);
-			ft_putstr_fd(" moves!\n", 1);
-			game->quit = 1;
-		}
+			ft_putstr_fd("Yay! My job is done here! ", 1);
 	}
 	if (c == '1')
 		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
@@ -851,12 +878,9 @@ void	move_right(t_game *game)
 		game->player.pos.x++;
 		scroll_screen(game);
 	}
-	if (!game->quit)
-	{
-		ft_putstr_fd("Total moves : ", 1);
-		ft_putnbr_fd(game->moves, 1);
-		ft_putendl_fd("", 1);
-	}
+	ft_putstr_fd("Total moves : ", 1);
+	ft_putnbr_fd(game->moves, 1);
+	ft_putendl_fd("", 1);
 }
 
 void	move_left(t_game *game)
@@ -886,14 +910,7 @@ void	move_left(t_game *game)
 		if (game->collect_nb)
 			ft_putstr_fd("Hmmm, i think there are still things to do here\t", 1);
 		else
-		{
-			game->moves++;
-			ft_putstr_fd("Yay! My job is done here!\n", 1);
-			ft_putstr_fd("Congratulations, you completed this map with ", 1);
-			ft_putnbr_fd(game->moves, 1);
-			ft_putstr_fd(" moves!\n", 1);
-			game->quit = 1;
-		}
+			ft_putstr_fd("Yay! My job is done here!\t", 1);
 	}
 	if (c == '1')
 		ft_putstr_fd("Outch, That's a wall! (doesn't count as a move)\t", 1);
@@ -904,37 +921,34 @@ void	move_left(t_game *game)
 		game->player.pos.x--;
 		scroll_screen(game);
 	}
-	if (!game->quit)
-	{
-		ft_putstr_fd("Total moves : ", 1);
-		ft_putnbr_fd(game->moves, 1);
-		ft_putendl_fd("", 1);
-	}
+	ft_putstr_fd("Total moves : ", 1);
+	ft_putnbr_fd(game->moves, 1);
+	ft_putendl_fd("", 1);
 }
 
 int	handle_keypress(int key, t_game *game)
 {
 	if (key == 65307)
 		mlx_loop_end(game->mlx);
-	else if (key == 122 && !game->quit)
+	else if (key == 122 && !game->player.state)
 	{
 		game->player.dir = 2;
-		move_up(game);
+		game->player.state++;
 	}
-	else if (key == 115 && !game->quit)
+	else if (key == 115 && !game->player.state)
 	{
-		game->player.dir = 0;
-		move_down(game);
+			game->player.dir = 0;
+			game->player.state++;
 	}
-	else if (key == 113 && !game->quit)
+	else if (key == 113 && !game->player.state)
 	{
 		game->player.dir = 3;
-		move_left(game);
+		game->player.state++;
 	}
-	else if (key == 100 && !game->quit)
+	else if (key == 100 && !game->player.state)
 	{
 		game->player.dir = 1;
-		move_right(game);
+		game->player.state++;
 	}
 	return (0);
 }
@@ -969,18 +983,96 @@ int	render_frame(t_game *game)
 	x = game->screen.player.x * 32;
 	y = game->screen.player.y * 32;
 	if (game->player.dir == 0)
-		put_img_to_img(&game->screen.img, &game->player.front, x, y);
+	{
+		if (game->player.state == 0)
+			put_img_to_img(&game->screen.img, &game->player.front_1, x, y);
+		else if (game->player.state < 8)
+			put_img_to_img(&game->screen.img, &game->player.front_2, x, y + 4 * ((game->screen.map)[game->screen.player.y + 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 16)
+			put_img_to_img(&game->screen.img, &game->player.front_1, x, y + 8 * ((game->screen.map)[game->screen.player.y + 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 24)
+			put_img_to_img(&game->screen.img, &game->player.front_3, x, y + 12 * ((game->screen.map)[game->screen.player.y + 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 32)
+			put_img_to_img(&game->screen.img, &game->player.front_1, x, y + 16 * ((game->screen.map)[game->screen.player.y + 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 40)
+			put_img_to_img(&game->screen.img, &game->player.front_2, x, y + 20 * ((game->screen.map)[game->screen.player.y + 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 48)
+			put_img_to_img(&game->screen.img, &game->player.front_1, x, y + 24 * ((game->screen.map)[game->screen.player.y + 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 56)
+			put_img_to_img(&game->screen.img, &game->player.front_3, x, y + 28 * ((game->screen.map)[game->screen.player.y + 1][game->screen.player.x] != '1'));
+	}
 	else if (game->player.dir == 1)
-		put_img_to_img(&game->screen.img, &game->player.right, x, y);
+	{
+		if (game->player.state == 0)
+			put_img_to_img(&game->screen.img, &game->player.right_1, x, y);
+		else if (game->player.state < 8)
+			put_img_to_img(&game->screen.img, &game->player.right_2, x + 4 * ((game->screen.map)[game->screen.player.y][game->screen.player.x + 1] != '1'), y);
+		else if (game->player.state < 16)
+			put_img_to_img(&game->screen.img, &game->player.right_1, x + 8 * ((game->screen.map)[game->screen.player.y][game->screen.player.x + 1] != '1'), y);
+		else if (game->player.state < 24)
+			put_img_to_img(&game->screen.img, &game->player.right_3, x + 12 * ((game->screen.map)[game->screen.player.y][game->screen.player.x + 1] != '1'), y);
+		else if (game->player.state < 32)
+			put_img_to_img(&game->screen.img, &game->player.right_1, x + 16 * ((game->screen.map)[game->screen.player.y][game->screen.player.x + 1] != '1'), y);
+		else if (game->player.state < 40)
+			put_img_to_img(&game->screen.img, &game->player.right_2, x + 20 * ((game->screen.map)[game->screen.player.y][game->screen.player.x + 1] != '1'), y);
+		else if (game->player.state < 48)
+			put_img_to_img(&game->screen.img, &game->player.right_1, x + 24 * ((game->screen.map)[game->screen.player.y][game->screen.player.x + 1] != '1'), y);
+		else if (game->player.state < 56)
+			put_img_to_img(&game->screen.img, &game->player.right_3, x + 28 * ((game->screen.map)[game->screen.player.y][game->screen.player.x + 1] != '1'), y);
+	}
 	else if (game->player.dir == 2)
-		put_img_to_img(&game->screen.img, &game->player.back, x, y);
+	{
+		if (game->player.state == 0)
+			put_img_to_img(&game->screen.img, &game->player.back_1, x, y);
+		else if (game->player.state < 8)
+			put_img_to_img(&game->screen.img, &game->player.back_2, x, y - 4 * ((game->screen.map)[game->screen.player.y - 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 16)
+			put_img_to_img(&game->screen.img, &game->player.back_1, x, y - 8 * ((game->screen.map)[game->screen.player.y - 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 24)
+			put_img_to_img(&game->screen.img, &game->player.back_3, x, y - 12 * ((game->screen.map)[game->screen.player.y - 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 32)
+			put_img_to_img(&game->screen.img, &game->player.back_1, x, y - 16 * ((game->screen.map)[game->screen.player.y - 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 40)
+			put_img_to_img(&game->screen.img, &game->player.back_2, x, y - 20 * ((game->screen.map)[game->screen.player.y - 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 48)
+			put_img_to_img(&game->screen.img, &game->player.back_1, x, y - 24 * ((game->screen.map)[game->screen.player.y - 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 56)
+			put_img_to_img(&game->screen.img, &game->player.back_3, x, y - 28 * ((game->screen.map)[game->screen.player.y - 1][game->screen.player.x] != '1'));
+	}
 	else
-		put_img_to_img(&game->screen.img, &game->player.left, x, y);
+	{
+		if (game->player.state == 0)
+			put_img_to_img(&game->screen.img, &game->player.left_1, x, y);
+		else if (game->player.state < 8)
+			put_img_to_img(&game->screen.img, &game->player.left_2, x - 4 * ((game->screen.map)[game->screen.player.y][game->screen.player.x - 1] != '1'), y);
+		else if (game->player.state < 16)
+			put_img_to_img(&game->screen.img, &game->player.left_1, x - 8 * ((game->screen.map)[game->screen.player.y][game->screen.player.x - 1] != '1'), y);
+		else if (game->player.state < 24)
+			put_img_to_img(&game->screen.img, &game->player.left_3, x - 12 * ((game->screen.map)[game->screen.player.y][game->screen.player.x - 1] != '1'), y);
+		else if (game->player.state < 32)
+			put_img_to_img(&game->screen.img, &game->player.left_1, x - 16 * ((game->screen.map)[game->screen.player.y][game->screen.player.x - 1] != '1'), y);
+		else if (game->player.state < 40)
+			put_img_to_img(&game->screen.img, &game->player.left_2, x - 20 * ((game->screen.map)[game->screen.player.y][game->screen.player.x - 1] != '1'), y);
+		else if (game->player.state < 48)
+			put_img_to_img(&game->screen.img, &game->player.left_1, x - 24 * ((game->screen.map)[game->screen.player.y][game->screen.player.x - 1] != '1'), y);
+		else if (game->player.state < 56)
+			put_img_to_img(&game->screen.img, &game->player.left_3, x - 28 * ((game->screen.map)[game->screen.player.y][game->screen.player.x - 1] != '1'), y);
+	}
 	mlx_put_image_to_window(game->mlx, game->win, game->screen.img.img, 0, 0);
-	if (game->quit && game->quit_time == 20)
-		mlx_loop_end(game->mlx);
-	else if (game->quit)
-		game->quit_time++;
+	if (game->player.state == 55)
+	{
+		if (game->player.dir == 0)
+			move_down(game);
+		else if (game->player.dir == 1)
+			move_right(game);
+		else if (game->player.dir == 2)
+			move_up(game);
+		else
+			move_left(game);
+		game->player.state = 0;
+	}
+	if (game->player.state > 0)
+		game->player.state++;
 	return (0);
 }
 
@@ -994,7 +1086,12 @@ int	main(int ac, char **av)
 		free_all_datas(&game);
 		return (0);
 	}
+
+
+
 	scroll_screen(&game);
+//	ft_putendl_fd("screen :", 1);
+//	print_map(game.screen.map, 1);
 	mlx_loop_hook(game.mlx, &render_frame, &game);
 	mlx_hook(game.win, 2, 1L << 0, &handle_keypress, &game);
 	mlx_hook(game.win, 33, 1L << 17, &mlx_loop_end, game.mlx);
