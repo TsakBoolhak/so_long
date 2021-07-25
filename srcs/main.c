@@ -666,29 +666,115 @@ void	free_all_datas(t_game *game)
 	}
 }
 
+void	get_map_position(t_game *game, t_coord *screen_pos, t_coord *map_pos, t_coord *to_draw)
+{
+	if (game->width < game->screen.size.x - 1)
+	{
+		screen_pos->x = ((game->screen.size.x - game->width) % 2 != 0);
+		screen_pos->x += (game->screen.size.x - game->width) / 2;
+		map_pos->x = 0;
+		to_draw->x = game->width;
+	}
+	else
+	{
+		if (game->player.pos.x < game->screen.size.x / 2 + 1)
+		{
+			screen_pos->x = 1;
+			map_pos->x = 0;
+			to_draw->x = game->screen.size.x - 1 + (game->player.pos.x == game->screen.size.x - 3);
+		}
+		else if (game->width - game->player.pos.x < game->screen.size.x / 2)
+		{
+			screen_pos->x = 0;
+			map_pos->x = game->width - game->screen.size.x + 1;
+			to_draw->x = game->width - map_pos->x;
+		}
+		else
+		{
+			screen_pos->x = 0;
+			map_pos->x = game->player.pos.x - game->screen.size.x / 2 - 1;
+			to_draw->x = game->screen.size.x;
+		}
+	}
+
+	if (game->height < game->screen.size.y - 1)
+	{
+		screen_pos->y = ((game->screen.size.y - game->height) % 2 != 0);
+		screen_pos->y += (game->screen.size.y - game->height) / 2;
+		map_pos->y = 0;
+		to_draw->y = game->height - 1;
+	}
+	else
+	{
+		if (game->player.pos.y < game->screen.size.y / 2 + 1)
+		{
+			screen_pos->y = 1;
+			map_pos->y = 0;
+			to_draw->y = game->screen.size.y - 1 + (game->player.pos.y == game->screen.size.y - 3);
+		}
+		else if (game->height - game->player.pos.y < game->screen.size.y / 2 - 1)
+		{
+			screen_pos->y = 0;
+			map_pos->y = game->height - game->screen.size.y + 1;
+			to_draw->y = game->height - map_pos->y -1;
+		}
+		else
+		{
+			screen_pos->y = 0;
+			map_pos->y = game->player.pos.y - game->screen.size.y / 2 - 1;
+			to_draw->y = game->screen.size.y;
+		}
+	}
+}
+
+void	scroll_screen(t_game *game)
+{
+	int		y;
+	t_coord map_pos;
+	t_coord screen_pos;
+	t_coord to_draw;
+	char **map;
+
+	get_map_position(game, &screen_pos, &map_pos, &to_draw);
+	game->screen.player.x = game->player.pos.x - map_pos.x + screen_pos.x;
+	game->screen.player.y = game->player.pos.y - map_pos.y + screen_pos.y;
+	y = 0;
+	map = game->screen.map;
+	while (y < game->screen.size.y)
+	{
+		if (y < screen_pos.y || y > screen_pos.y + to_draw.y)
+			ft_memset(map[y], 'W', game->screen.size.x);
+		else
+		{
+			ft_memset(map[y], 'W', screen_pos.x);
+			ft_memcpy(map[y] + screen_pos.x, (game->map)[map_pos.y + y - screen_pos.y] + map_pos.x, to_draw.x);
+			ft_memset(map[y] + screen_pos.x + to_draw.x, 'W', game->screen.size.x - screen_pos.x - to_draw.x);
+		}
+		y++;
+	}
+}
+
 void	move_up(t_game *game)
 {
 	char	**map;
+	char	**map_2;
 	t_coord	pos;
+	t_coord	pos_2;
 	char	c;
 
 	map = game->screen.map;
 	pos.x = game->screen.player.x;
 	pos.y = game->screen.player.y - 1;
-	game->player.dir = 2;
-	c = map[pos.y][pos.x];
-	if (c == '1')
-		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
-	else
-	{
-		game->moves++;
-		game->screen.player.y--;
-	}
+	map_2 = game->map;
+	pos_2.x = game->player.pos.x;
+	pos_2.y = game->player.pos.y - 1;
+	c = map_2[pos_2.y][pos_2.x];
 	if (c == 'C')
 	{
 		ft_putstr_fd("Hey, this stuff seem usefull, let's keep it ", 1);
 		game->collect_nb--;
 		map[pos.y][pos.x] = '0';
+		map_2[pos_2.y][pos_2.x] = '0';
 	}
 	else if (c == 'E')
 	{
@@ -696,6 +782,15 @@ void	move_up(t_game *game)
 			ft_putstr_fd("Hmmm, i think there are still things to do here ", 1);
 		else
 			ft_putstr_fd("Yay! My job is done here! ", 1);
+	}
+	if (c == '1')
+		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
+	else
+	{
+		game->moves++;
+		game->screen.player.y--;
+		game->player.pos.y--;
+		scroll_screen(game);
 	}
 	ft_putstr_fd("Total moves : ", 1);
 	ft_putnbr_fd(game->moves, 1);
@@ -705,26 +800,24 @@ void	move_up(t_game *game)
 void	move_down(t_game *game)
 {
 	char	**map;
+	char	**map_2;
 	t_coord	pos;
+	t_coord	pos_2;
 	char	c;
 
 	map = game->screen.map;
-	game->player.dir = 0;
 	pos.x = game->screen.player.x;
 	pos.y = game->screen.player.y + 1;
-	c = map[pos.y][pos.x];
-	if (c == '1')
-		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
-	else
-	{
-		game->moves++;
-		game->screen.player.y++;
-	}
+	map_2 = game->map;
+	pos_2.x = game->player.pos.x;
+	pos_2.y = game->player.pos.y + 1;
+	c = map_2[pos_2.y][pos_2.x];
 	if (c == 'C')
 	{
 		ft_putstr_fd("Hey, this stuff seem usefull, let's keep it ", 1);
 		game->collect_nb--;
 		map[pos.y][pos.x] = '0';
+		map_2[pos_2.y][pos_2.x] = '0';
 	}
 	else if (c == 'E')
 	{
@@ -732,6 +825,15 @@ void	move_down(t_game *game)
 			ft_putstr_fd("Hmmm, i think there are still things to do here ", 1);
 		else
 			ft_putstr_fd("Yay! My job is done here! ", 1);
+	}
+	if (c == '1')
+		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
+	else
+	{
+		game->moves++;
+		game->screen.player.y++;
+		game->player.pos.y++;
+		scroll_screen(game);
 	}
 	ft_putstr_fd("Total moves : ", 1);
 	ft_putnbr_fd(game->moves, 1);
@@ -741,26 +843,24 @@ void	move_down(t_game *game)
 void	move_right(t_game *game)
 {
 	char	**map;
+	char	**map_2;
 	t_coord	pos;
+	t_coord	pos_2;
 	char	c;
 
 	map = game->screen.map;
-	game->player.dir = 1;
 	pos.x = game->screen.player.x + 1;
 	pos.y = game->screen.player.y;
-	c = map[pos.y][pos.x];
-	if (c == '1')
-		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
-	else
-	{
-		game->moves++;
-		game->screen.player.x++;
-	}
+	map_2 = game->map;
+	pos_2.x = game->player.pos.x + 1;
+	pos_2.y = game->player.pos.y;
+	c = map_2[pos_2.y][pos_2.x];
 	if (c == 'C')
 	{
 		ft_putstr_fd("Hey, this stuff seem usefull, let's keep it ", 1);
 		game->collect_nb--;
 		map[pos.y][pos.x] = '0';
+		map_2[pos_2.y][pos_2.x] = '0';
 	}
 	else if (c == 'E')
 	{
@@ -768,6 +868,15 @@ void	move_right(t_game *game)
 			ft_putstr_fd("Hmmm, i think there are still things to do here ", 1);
 		else
 			ft_putstr_fd("Yay! My job is done here! ", 1);
+	}
+	if (c == '1')
+		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
+	else
+	{
+		game->moves++;
+		game->screen.player.x++;
+		game->player.pos.x++;
+		scroll_screen(game);
 	}
 	ft_putstr_fd("Total moves : ", 1);
 	ft_putnbr_fd(game->moves, 1);
@@ -777,26 +886,24 @@ void	move_right(t_game *game)
 void	move_left(t_game *game)
 {
 	char	**map;
+	char	**map_2;
 	t_coord	pos;
+	t_coord	pos_2;
 	char	c;
 
 	map = game->screen.map;
-	game->player.dir = 3;
 	pos.x = game->screen.player.x - 1;
 	pos.y = game->screen.player.y;
-	c = map[pos.y][pos.x];
-	if (c == '1')
-		ft_putstr_fd("Outch, That's a wall! (doesn't count as a move)\t", 1);
-	else
-	{
-		game->moves++;
-		game->screen.player.x--;
-	}
+	map_2 = game->map;
+	pos_2.x = game->player.pos.x - 1;
+	pos_2.y = game->player.pos.y;
+	c = map_2[pos_2.y][pos_2.x];
 	if (c == 'C')
 	{
 		ft_putstr_fd("Hey, this stuff seem usefull, let's keep it\t", 1);
 		game->collect_nb--;
 		map[pos.y][pos.x] = '0';
+		map_2[pos_2.y][pos_2.x] = '0';
 	}
 	else if (c == 'E')
 	{
@@ -804,6 +911,15 @@ void	move_left(t_game *game)
 			ft_putstr_fd("Hmmm, i think there are still things to do here\t", 1);
 		else
 			ft_putstr_fd("Yay! My job is done here!\t", 1);
+	}
+	if (c == '1')
+		ft_putstr_fd("Outch, That's a wall! (doesn't count as a move)\t", 1);
+	else
+	{
+		game->moves++;
+		game->screen.player.x--;
+		game->player.pos.x--;
+		scroll_screen(game);
 	}
 	ft_putstr_fd("Total moves : ", 1);
 	ft_putnbr_fd(game->moves, 1);
@@ -814,14 +930,26 @@ int	handle_keypress(int key, t_game *game)
 {
 	if (key == 65307)
 		mlx_loop_end(game->mlx);
-	else if (key == 122)
-		move_up(game);
-	else if (key == 115)
-		move_down(game);
-	else if (key == 113)
-		move_left(game);
-	else if (key == 100)
-		move_right(game);
+	else if (key == 122 && !game->player.state)
+	{
+		game->player.dir = 2;
+		game->player.state++;
+	}
+	else if (key == 115 && !game->player.state)
+	{
+			game->player.dir = 0;
+			game->player.state++;
+	}
+	else if (key == 113 && !game->player.state)
+	{
+		game->player.dir = 3;
+		game->player.state++;
+	}
+	else if (key == 100 && !game->player.state)
+	{
+		game->player.dir = 1;
+		game->player.state++;
+	}
 	return (0);
 }
 
@@ -848,94 +976,109 @@ int	render_frame(t_game *game)
 				put_img_to_img(&game->screen.img, &game->collect, x, y);
 			else if (c == 'E')
 				put_img_to_img(&game->screen.img, &game->exit, x, y);
-			if (x == game->screen.player.x * 32 && y == game->screen.player.y * 32)
-			{
-				if (game->player.dir == 0)
-					put_img_to_img(&game->screen.img, &game->player.front_1, x, y);
-				else if (game->player.dir == 1)
-					put_img_to_img(&game->screen.img, &game->player.right_1, x, y);
-				else if (game->player.dir == 2)
-					put_img_to_img(&game->screen.img, &game->player.back_1, x, y);
-				else
-					put_img_to_img(&game->screen.img, &game->player.left_1, x, y);
-			}
 			x += 32;
 		}
 		y += 32;
 	}
+	x = game->screen.player.x * 32;
+	y = game->screen.player.y * 32;
+	if (game->player.dir == 0)
+	{
+		if (game->player.state == 0)
+			put_img_to_img(&game->screen.img, &game->player.front_1, x, y);
+		else if (game->player.state < 8)
+			put_img_to_img(&game->screen.img, &game->player.front_2, x, y + 4 * ((game->screen.map)[game->screen.player.y + 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 16)
+			put_img_to_img(&game->screen.img, &game->player.front_1, x, y + 8 * ((game->screen.map)[game->screen.player.y + 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 24)
+			put_img_to_img(&game->screen.img, &game->player.front_3, x, y + 12 * ((game->screen.map)[game->screen.player.y + 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 32)
+			put_img_to_img(&game->screen.img, &game->player.front_1, x, y + 16 * ((game->screen.map)[game->screen.player.y + 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 40)
+			put_img_to_img(&game->screen.img, &game->player.front_2, x, y + 20 * ((game->screen.map)[game->screen.player.y + 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 48)
+			put_img_to_img(&game->screen.img, &game->player.front_1, x, y + 24 * ((game->screen.map)[game->screen.player.y + 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 56)
+			put_img_to_img(&game->screen.img, &game->player.front_3, x, y + 28 * ((game->screen.map)[game->screen.player.y + 1][game->screen.player.x] != '1'));
+	}
+	else if (game->player.dir == 1)
+	{
+		if (game->player.state == 0)
+			put_img_to_img(&game->screen.img, &game->player.right_1, x, y);
+		else if (game->player.state < 8)
+			put_img_to_img(&game->screen.img, &game->player.right_2, x + 4 * ((game->screen.map)[game->screen.player.y][game->screen.player.x + 1] != '1'), y);
+		else if (game->player.state < 16)
+			put_img_to_img(&game->screen.img, &game->player.right_1, x + 8 * ((game->screen.map)[game->screen.player.y][game->screen.player.x + 1] != '1'), y);
+		else if (game->player.state < 24)
+			put_img_to_img(&game->screen.img, &game->player.right_3, x + 12 * ((game->screen.map)[game->screen.player.y][game->screen.player.x + 1] != '1'), y);
+		else if (game->player.state < 32)
+			put_img_to_img(&game->screen.img, &game->player.right_1, x + 16 * ((game->screen.map)[game->screen.player.y][game->screen.player.x + 1] != '1'), y);
+		else if (game->player.state < 40)
+			put_img_to_img(&game->screen.img, &game->player.right_2, x + 20 * ((game->screen.map)[game->screen.player.y][game->screen.player.x + 1] != '1'), y);
+		else if (game->player.state < 48)
+			put_img_to_img(&game->screen.img, &game->player.right_1, x + 24 * ((game->screen.map)[game->screen.player.y][game->screen.player.x + 1] != '1'), y);
+		else if (game->player.state < 56)
+			put_img_to_img(&game->screen.img, &game->player.right_3, x + 28 * ((game->screen.map)[game->screen.player.y][game->screen.player.x + 1] != '1'), y);
+	}
+	else if (game->player.dir == 2)
+	{
+		if (game->player.state == 0)
+			put_img_to_img(&game->screen.img, &game->player.back_1, x, y);
+		else if (game->player.state < 8)
+			put_img_to_img(&game->screen.img, &game->player.back_2, x, y - 4 * ((game->screen.map)[game->screen.player.y - 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 16)
+			put_img_to_img(&game->screen.img, &game->player.back_1, x, y - 8 * ((game->screen.map)[game->screen.player.y - 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 24)
+			put_img_to_img(&game->screen.img, &game->player.back_3, x, y - 12 * ((game->screen.map)[game->screen.player.y - 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 32)
+			put_img_to_img(&game->screen.img, &game->player.back_1, x, y - 16 * ((game->screen.map)[game->screen.player.y - 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 40)
+			put_img_to_img(&game->screen.img, &game->player.back_2, x, y - 20 * ((game->screen.map)[game->screen.player.y - 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 48)
+			put_img_to_img(&game->screen.img, &game->player.back_1, x, y - 24 * ((game->screen.map)[game->screen.player.y - 1][game->screen.player.x] != '1'));
+		else if (game->player.state < 56)
+			put_img_to_img(&game->screen.img, &game->player.back_3, x, y - 28 * ((game->screen.map)[game->screen.player.y - 1][game->screen.player.x] != '1'));
+	}
+	else
+	{
+		if (game->player.state == 0)
+			put_img_to_img(&game->screen.img, &game->player.left_1, x, y);
+		else if (game->player.state < 8)
+			put_img_to_img(&game->screen.img, &game->player.left_2, x - 4 * ((game->screen.map)[game->screen.player.y][game->screen.player.x - 1] != '1'), y);
+		else if (game->player.state < 16)
+			put_img_to_img(&game->screen.img, &game->player.left_1, x - 8 * ((game->screen.map)[game->screen.player.y][game->screen.player.x - 1] != '1'), y);
+		else if (game->player.state < 24)
+			put_img_to_img(&game->screen.img, &game->player.left_3, x - 12 * ((game->screen.map)[game->screen.player.y][game->screen.player.x - 1] != '1'), y);
+		else if (game->player.state < 32)
+			put_img_to_img(&game->screen.img, &game->player.left_1, x - 16 * ((game->screen.map)[game->screen.player.y][game->screen.player.x - 1] != '1'), y);
+		else if (game->player.state < 40)
+			put_img_to_img(&game->screen.img, &game->player.left_2, x - 20 * ((game->screen.map)[game->screen.player.y][game->screen.player.x - 1] != '1'), y);
+		else if (game->player.state < 48)
+			put_img_to_img(&game->screen.img, &game->player.left_1, x - 24 * ((game->screen.map)[game->screen.player.y][game->screen.player.x - 1] != '1'), y);
+		else if (game->player.state < 56)
+			put_img_to_img(&game->screen.img, &game->player.left_3, x - 28 * ((game->screen.map)[game->screen.player.y][game->screen.player.x - 1] != '1'), y);
+	}
 	mlx_put_image_to_window(game->mlx, game->win, game->screen.img.img, 0, 0);
+	if (game->player.state == 55)
+	{
+		if (game->player.dir == 0)
+			move_down(game);
+		else if (game->player.dir == 1)
+			move_right(game);
+		else if (game->player.dir == 2)
+			move_up(game);
+		else
+			move_left(game);
+		game->player.state = 0;
+	}
+	if (game->player.state > 0)
+		game->player.state++;
 	return (0);
 }
-
-void	get_map_position(t_game *game, t_coord *screen_pos, t_coord *map_pos, t_coord *to_draw)
-{
-	if (game->width < game->screen.size.x - 1)
-	{
-		screen_pos->x = ((game->screen.size.x - game->width) % 2 != 0);
-		screen_pos->x += (game->screen.size.x - game->width) / 2;
-		map_pos->x = 0;
-		to_draw->x = game->width;
-	}
-	else
-	{
-		if (game->player.pos.x < game->screen.size.x - 4)
-		{
-			screen_pos->x = 1;
-			map_pos->x = 0;
-			to_draw->x = game->screen.size.x - 1 + (game->player.pos.x == game->screen.size.x - 3);
-		}
-		else if (game->width - game->player.pos.x < game->screen.size.x - 1)
-		{
-			screen_pos->x = 0;
-			map_pos->x = game->width - game->screen.size.x + 1;
-			to_draw->x = game->width - map_pos->x;
-		}
-		else
-		{
-			screen_pos->x = 0;
-			map_pos->x = game->player.pos.x - game->screen.size.x / 2 - 1;
-			to_draw->x = game->screen.size.x;
-		}
-	}
-
-	if (game->height < game->screen.size.y - 1)
-	{
-		screen_pos->y = ((game->screen.size.y - game->height) % 2 != 0);
-		screen_pos->y += (game->screen.size.y - game->height) / 2;
-		map_pos->y = 0;
-		to_draw->y = game->height - 1;
-	}
-	else
-	{
-		if (game->player.pos.y < game->screen.size.y - 4)
-		{
-			screen_pos->y = 1;
-			map_pos->y = 0;
-			to_draw->y = game->screen.size.y - 1 + (game->player.pos.y == game->screen.size.y - 3);
-		}
-		else if (game->height - game->player.pos.y < game->screen.size.y - 1)
-		{
-			screen_pos->y = 0;
-			map_pos->y = game->height - game->screen.size.y + 1;
-			to_draw->y = game->height - map_pos->y -1;
-		}
-		else
-		{
-			screen_pos->y = 0;
-			map_pos->y = game->player.pos.y - game->screen.size.y / 2 - 1;
-			to_draw->y = game->screen.size.y;
-		}
-	}
-}
-
-#include <stdio.h>
 
 int	main(int ac, char **av)
 {
 	t_game	game;
-	int		y;
-//	int		i;
-//	int		j;
 
 	ft_memset(&game, 0, sizeof(game));
 	if (parser(ac, av, &game) || init_game(&game))
@@ -944,76 +1087,9 @@ int	main(int ac, char **av)
 		return (0);
 	}
 
-	t_coord map_pos;
-	t_coord screen_pos;
-	t_coord to_draw;
 
-	get_map_position(&game, &screen_pos, &map_pos, &to_draw);
-	printf("screen_pos :\tx %d\ty %d\nmap_pos\t\tx %d\ty %d\nto_draw\t\tx %d\ty %d\n", screen_pos.x, screen_pos.y, map_pos.x, map_pos.y, to_draw.x, to_draw.y);
-	printf("screen.size\tx %d\ty%d\nmap size\tx %d\ty %d\nplayer.pos\tx %d\ty %d\n", game.screen.size.x, game.screen.size.y, game.width, game.height, game.player.pos.x, game.player.pos.y);
-	y = 0;
-	char **map;
-	char *ptr;
-	map = game.screen.map;
-	while (y < game.screen.size.y)
-	{
-		printf("y = %d\n", y);
-		if (y < screen_pos.y || y > screen_pos.y + to_draw.y)
-			ft_memset(map[y], 'W', game.screen.size.x);
-		else
-		{
-			ft_memset(map[y], 'W', screen_pos.x);
-			ft_memcpy(map[y] + screen_pos.x, (game.map)[map_pos.y + y - screen_pos.y] + map_pos.x, to_draw.x);
-			ft_memset(map[y] + screen_pos.x + to_draw.x, 'W', game.screen.size.x - screen_pos.x - to_draw.x);
-			ptr = ft_strchr(map[y], 'P');
-			if (ptr)
-			{
-				game.screen.player.x = (int)(ptr - map[y]);
-				game.screen.player.y = y;
-			}
-		}
-		y++;
-	}
 
-/*	
-if (game.width <= game.screen.size.x)
-	{
-		i = game.screen.size.x - game.width;
-		y = 0;
-		game.screen.player.x = game.player.pos.x + i / 2 + (i % 2 != 0);
-		while (y < game.screen.size.y)
-		{
-			ft_memset((game.screen.map)[y], 'W', (i / 2) + (i % 2 != 0));
-			if (game.height <= game.screen.size.y)
-			{
-				if (!j)
-					j = game.screen.size.y - game.height;
-				game.screen.player.y = game.player.pos.y + j / 2 + (j % 2 != 0);
-				if (y < (j / 2) + (j % 2 != 0) || y >= game.screen.size.y - j / 2)
-					ft_memset((game.screen.map)[y] + (i / 2) + (i % 2 != 0), 'W', game.screen.size.x - (i / 2) - (i % 2 != 0));
-				else
-				{
-					ft_memcpy((game.screen.map)[y] + (i / 2) + (i % 2 != 0), (game.map)[y - (j / 2) - (j % 2 != 0)], game.width);
-					ft_memset((game.screen.map)[y] + game.screen.size.x - i / 2, 'W', i / 2);
-				}
-			}
-			else
-				ft_memset((game.screen.map)[y] + game.screen.size.x - i / 2, 'W', i / 2);
-			y++;
-		}
-	}
-	else
-	{
-		y = 0;
-		while (y < game.screen.size.y)
-		{
-			ft_memset((game.screen.map)[y], 'W', game.screen.size.x);
-			y++;
-		}
-	}
-*/
-	
-
+	scroll_screen(&game);
 //	ft_putendl_fd("screen :", 1);
 //	print_map(game.screen.map, 1);
 	mlx_loop_hook(game.mlx, &render_frame, &game);
