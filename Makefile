@@ -2,9 +2,13 @@ SRCFOLD		= srcs/
 
 BONUSFOLD	= srcs_bonus/
 
-SRCS_BONUS	= ${BONUSFOLD}main.c \
+SRCS_BONUS	= ${BONUSFOLD}main.c
 
-SRCS		= ${SRCFOLD}main.c \
+SRCS		=	${SRCFOLD}main.c \
+				${SRCFOLD}print_1.c \
+				${SRCFOLD}print_2.c \
+				${SRCFOLD}parser_checks.c \
+				${SRCFOLD}parser.c
 
 OBJS		= ${SRCS:.c=.o}
 
@@ -14,7 +18,7 @@ NAME		= so_long
 
 NAME_BONUS	= so_long_bonus
 
-CC			= @clang
+CC			= @gcc
 
 CFLAGS		= -Wall -Wextra -Werror -g3
 

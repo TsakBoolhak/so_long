@@ -10,6 +10,7 @@ SRCS_MEMORY	= ft_calloc.c \
 			ft_split.c \
 			ft_splitjoin.c \
 			ft_tabdup.c \
+			ft_add_str_to_tab.c \
 			ft_free_tab.c \
 			ft_tab_size.c
 

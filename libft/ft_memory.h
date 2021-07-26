@@ -21,6 +21,7 @@ char	*ft_strjoin(char const *s1, char const *s2);
 char	*ft_strtrim(char const *src, char const *set);
 char	**ft_split(char const *s, char c);
 char	**ft_splitjoin(char **tab1, char **tab2);
+char	**ft_add_str_to_tab(char **tab, char *line);
 char	*ft_itoa(int n);
 char	*ft_strmapi(char const *s, char (*f)(unsigned int, char));
 char	**ft_tabdup(char **tab);
