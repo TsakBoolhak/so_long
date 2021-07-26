@@ -3,69 +3,8 @@
 #include <fcntl.h>
 #include "libft.h"
 #include "mlx.h"
-
-typedef struct s_coord
-{
-	int	x;
-	int	y;
-}t_coord;
-
-typedef struct s_img
-{
-	void	*img;
-	char	*addr;
-	int		bpp;
-	int		width;
-	int		height;
-	int		end;
-}t_img;
-
-typedef struct s_character
-{
-	t_img	front;
-	t_img	back;
-	t_img	right;
-	t_img	left;
-	int		dir;
-	t_coord	pos;
-}t_character;
-
-typedef struct s_screen
-{
-	t_coord	size;
-	t_coord	player;
-	t_img	img;
-	char	**map;
-}t_screen;
-
-typedef struct s_game
-{
-	int			height;
-	int			width;
-	int			moves;
-	int			collect_nb;
-	int			quit;
-	int			quit_time;
-	char		**map;
-	t_screen	screen;
-	t_coord		res;
-	t_img		water;
-	t_img		wall;
-	t_img		grass;
-	t_img		exit;
-	t_img		collect;
-	t_character	player;
-	void		*win;
-	void		*mlx;
-}t_game;
-
-typedef struct s_parse
-{
-	int	exit;
-	int	collectible;
-	int	line_error;
-	int	char_error;
-}t_parse;
+#include "so_long_structures.h"
+//#include "so_long.h"
 
 void	print_usage(void)
 {
@@ -610,89 +549,98 @@ void	free_all_datas(t_game *game)
 	}
 }
 
-void	get_map_position(t_game *game, t_coord *screen_pos, t_coord *map_pos, t_coord *to_draw)
+void	handle_large_map(t_game *game, int *screen_x, int *map_x, int *len_x)
+{
+	if (game->player.pos.x < game->screen.size.x / 2 + 1)
+	{
+		*screen_x = 1;
+		*map_x = 0;
+		*len_x = game->screen.size.x - 1;
+		*len_x += (game->player.pos.x == game->screen.size.x - 3);
+	}
+	else if (game->width - game->player.pos.x < game->screen.size.x / 2)
+	{
+		*screen_x = 0;
+		*map_x = game->width - game->screen.size.x + 1;
+		*len_x = game->width - *map_x;
+	}
+	else
+	{
+		*screen_x = 0;
+		*map_x = game->player.pos.x - game->screen.size.x / 2 - 1;
+		*len_x = game->screen.size.x;
+	}
+}
+
+void	handle_tall_map(t_game *game, int *screen_y, int *map_y, int *len_y)
+{
+	if (game->player.pos.y < game->screen.size.y / 2 + 1)
+	{
+		*screen_y = 1;
+		*map_y = 0;
+		*len_y = game->screen.size.y - 1;
+		*len_y += (game->player.pos.y == game->screen.size.y - 3);
+	}
+	else if (game->height - game->player.pos.y < game->screen.size.y / 2 - 1)
+	{
+		*screen_y = 0;
+		*map_y = game->height - game->screen.size.y + 1;
+		*len_y = game->height - *map_y - 1;
+	}
+	else
+	{
+		*screen_y = 0;
+		*map_y = game->player.pos.y - game->screen.size.y / 2 - 1;
+		*len_y = game->screen.size.y;
+	}
+}
+
+void	get_map_pos(t_game *game, t_coord *screen, t_coord *map, t_coord *len)
 {
 	if (game->width < game->screen.size.x - 1)
 	{
-		screen_pos->x = ((game->screen.size.x - game->width) % 2 != 0);
-		screen_pos->x += (game->screen.size.x - game->width) / 2;
-		map_pos->x = 0;
-		to_draw->x = game->width;
+		screen->x = ((game->screen.size.x - game->width) % 2 != 0);
+		screen->x += (game->screen.size.x - game->width) / 2;
+		map->x = 0;
+		len->x = game->width;
 	}
 	else
-	{
-		if (game->player.pos.x < game->screen.size.x / 2 + 1)
-		{
-			screen_pos->x = 1;
-			map_pos->x = 0;
-			to_draw->x = game->screen.size.x - 1 + (game->player.pos.x == game->screen.size.x - 3);
-		}
-		else if (game->width - game->player.pos.x < game->screen.size.x / 2)
-		{
-			screen_pos->x = 0;
-			map_pos->x = game->width - game->screen.size.x + 1;
-			to_draw->x = game->width - map_pos->x;
-		}
-		else
-		{
-			screen_pos->x = 0;
-			map_pos->x = game->player.pos.x - game->screen.size.x / 2 - 1;
-			to_draw->x = game->screen.size.x;
-		}
-	}
-
+		handle_large_map(game, &screen->x, &map->x, &len->x);
 	if (game->height < game->screen.size.y - 1)
 	{
-		screen_pos->y = ((game->screen.size.y - game->height) % 2 != 0);
-		screen_pos->y += (game->screen.size.y - game->height) / 2;
-		map_pos->y = 0;
-		to_draw->y = game->height - 1;
+		screen->y = ((game->screen.size.y - game->height) % 2 != 0);
+		screen->y += (game->screen.size.y - game->height) / 2;
+		map->y = 0;
+		len->y = game->height - 1;
 	}
 	else
-	{
-		if (game->player.pos.y < game->screen.size.y / 2 + 1)
-		{
-			screen_pos->y = 1;
-			map_pos->y = 0;
-			to_draw->y = game->screen.size.y - 1 + (game->player.pos.y == game->screen.size.y - 3);
-		}
-		else if (game->height - game->player.pos.y < game->screen.size.y / 2 - 1)
-		{
-			screen_pos->y = 0;
-			map_pos->y = game->height - game->screen.size.y + 1;
-			to_draw->y = game->height - map_pos->y -1;
-		}
-		else
-		{
-			screen_pos->y = 0;
-			map_pos->y = game->player.pos.y - game->screen.size.y / 2 - 1;
-			to_draw->y = game->screen.size.y;
-		}
-	}
+		handle_tall_map(game, &screen->y, &map->y, &len->y);
 }
 
 void	scroll_screen(t_game *game)
 {
 	int		y;
-	t_coord map_pos;
-	t_coord screen_pos;
-	t_coord to_draw;
-	char **map;
+	t_coord	map_pos;
+	t_coord	screen_pos;
+	t_coord	len;
+	char	**map;
 
-	get_map_position(game, &screen_pos, &map_pos, &to_draw);
+	get_map_pos(game, &screen_pos, &map_pos, &len);
 	game->screen.player.x = game->player.pos.x - map_pos.x + screen_pos.x;
 	game->screen.player.y = game->player.pos.y - map_pos.y + screen_pos.y;
 	y = 0;
 	map = game->screen.map;
 	while (y < game->screen.size.y)
 	{
-		if (y < screen_pos.y || y > screen_pos.y + to_draw.y)
+		if (y < screen_pos.y || y > screen_pos.y + len.y)
 			ft_memset(map[y], 'W', game->screen.size.x);
 		else
 		{
 			ft_memset(map[y], 'W', screen_pos.x);
-			ft_memcpy(map[y] + screen_pos.x, (game->map)[map_pos.y + y - screen_pos.y] + map_pos.x, to_draw.x);
-			ft_memset(map[y] + screen_pos.x + to_draw.x, 'W', game->screen.size.x - screen_pos.x - to_draw.x);
+			ft_memcpy(map[y] + screen_pos.x, (game->map)[map_pos.y + y
+				- screen_pos.y] + map_pos.x, len.x);
+			ft_memset(map[y] + screen_pos.x
+				+ len.x, 'W', game->screen.size.x - screen_pos.x - len.x);
 		}
 		y++;
 	}
@@ -700,29 +648,16 @@ void	scroll_screen(t_game *game)
 
 int	render_frame(t_game *game);
 
-void	move_up(t_game *game)
+void	detect_collect_exit(t_game *game, char *game_map_c, char *screen_map_c)
 {
-	char	**map;
-	char	**map_2;
-	t_coord	pos;
-	t_coord	pos_2;
-	char	c;
-
-	map = game->screen.map;
-	pos.x = game->screen.player.x;
-	pos.y = game->screen.player.y - 1;
-	map_2 = game->map;
-	pos_2.x = game->player.pos.x;
-	pos_2.y = game->player.pos.y - 1;
-	c = map_2[pos_2.y][pos_2.x];
-	if (c == 'C')
+	if (*screen_map_c == 'C')
 	{
 		ft_putstr_fd("Hey, this stuff seem usefull, let's keep it ", 1);
 		game->collect_nb--;
-		map[pos.y][pos.x] = '0';
-		map_2[pos_2.y][pos_2.x] = '0';
+		*game_map_c = '0';
+		*screen_map_c = '0';
 	}
-	else if (c == 'E')
+	else if (*screen_map_c == 'E')
 	{
 		if (game->collect_nb)
 			ft_putstr_fd("Hmmm, i think there are still things to do here ", 1);
@@ -736,7 +671,33 @@ void	move_up(t_game *game)
 			game->quit = 1;
 		}
 	}
-	if (c == '1')
+}
+
+void	print_moves(t_game *game)
+{
+	if (!game->quit)
+	{
+		ft_putstr_fd("Total moves : ", 1);
+		ft_putnbr_fd(game->moves, 1);
+		ft_putendl_fd("", 1);
+	}
+}
+
+void	move_up(t_game *game)
+{
+	char	**map;
+	char	**map_2;
+	t_coord	pos;
+	t_coord	pos_2;
+
+	map = game->screen.map;
+	pos.x = game->screen.player.x;
+	pos.y = game->screen.player.y - 1;
+	map_2 = game->map;
+	pos_2.x = game->player.pos.x;
+	pos_2.y = game->player.pos.y - 1;
+	detect_collect_exit(game, &map[pos.y][pos.x], &map_2[pos_2.y][pos_2.x]);
+	if (map[pos.y][pos.x] == '1')
 		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
 	else
 	{
@@ -745,12 +706,7 @@ void	move_up(t_game *game)
 		game->player.pos.y--;
 		scroll_screen(game);
 	}
-	if (!game->quit)
-	{
-		ft_putstr_fd("Total moves : ", 1);
-		ft_putnbr_fd(game->moves, 1);
-		ft_putendl_fd("", 1);
-	}
+	print_moves(game);
 }
 
 void	move_down(t_game *game)
@@ -759,7 +715,6 @@ void	move_down(t_game *game)
 	char	**map_2;
 	t_coord	pos;
 	t_coord	pos_2;
-	char	c;
 
 	map = game->screen.map;
 	pos.x = game->screen.player.x;
@@ -767,29 +722,8 @@ void	move_down(t_game *game)
 	map_2 = game->map;
 	pos_2.x = game->player.pos.x;
 	pos_2.y = game->player.pos.y + 1;
-	c = map_2[pos_2.y][pos_2.x];
-	if (c == 'C')
-	{
-		ft_putstr_fd("Hey, this stuff seem usefull, let's keep it ", 1);
-		game->collect_nb--;
-		map[pos.y][pos.x] = '0';
-		map_2[pos_2.y][pos_2.x] = '0';
-	}
-	else if (c == 'E')
-	{
-		if (game->collect_nb)
-			ft_putstr_fd("Hmmm, i think there are still things to do here ", 1);
-		else
-		{
-			game->moves++;
-			ft_putstr_fd("Yay! My job is done here!\n", 1);
-			ft_putstr_fd("Congratulations, you completed this map with ", 1);
-			ft_putnbr_fd(game->moves, 1);
-			ft_putstr_fd(" moves!\n", 1);
-			game->quit = 1;
-		}
-	}
-	if (c == '1')
+	detect_collect_exit(game, &map[pos.y][pos.x], &map_2[pos_2.y][pos_2.x]);
+	if (map[pos.y][pos.x] == '1')
 		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
 	else
 	{
@@ -798,12 +732,7 @@ void	move_down(t_game *game)
 		game->player.pos.y++;
 		scroll_screen(game);
 	}
-	if (!game->quit)
-	{
-		ft_putstr_fd("Total moves : ", 1);
-		ft_putnbr_fd(game->moves, 1);
-		ft_putendl_fd("", 1);
-	}
+	print_moves(game);
 }
 
 void	move_right(t_game *game)
@@ -812,7 +741,6 @@ void	move_right(t_game *game)
 	char	**map_2;
 	t_coord	pos;
 	t_coord	pos_2;
-	char	c;
 
 	map = game->screen.map;
 	pos.x = game->screen.player.x + 1;
@@ -820,29 +748,8 @@ void	move_right(t_game *game)
 	map_2 = game->map;
 	pos_2.x = game->player.pos.x + 1;
 	pos_2.y = game->player.pos.y;
-	c = map_2[pos_2.y][pos_2.x];
-	if (c == 'C')
-	{
-		ft_putstr_fd("Hey, this stuff seem usefull, let's keep it ", 1);
-		game->collect_nb--;
-		map[pos.y][pos.x] = '0';
-		map_2[pos_2.y][pos_2.x] = '0';
-	}
-	else if (c == 'E')
-	{
-		if (game->collect_nb)
-			ft_putstr_fd("Hmmm, i think there are still things to do here ", 1);
-		else
-		{
-			game->moves++;
-			ft_putstr_fd("Yay! My job is done here!\n", 1);
-			ft_putstr_fd("Congratulations, you completed this map with ", 1);
-			ft_putnbr_fd(game->moves, 1);
-			ft_putstr_fd(" moves!\n", 1);
-			game->quit = 1;
-		}
-	}
-	if (c == '1')
+	detect_collect_exit(game, &map[pos.y][pos.x], &map_2[pos_2.y][pos_2.x]);
+	if (map[pos.y][pos.x] == '1')
 		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
 	else
 	{
@@ -851,12 +758,7 @@ void	move_right(t_game *game)
 		game->player.pos.x++;
 		scroll_screen(game);
 	}
-	if (!game->quit)
-	{
-		ft_putstr_fd("Total moves : ", 1);
-		ft_putnbr_fd(game->moves, 1);
-		ft_putendl_fd("", 1);
-	}
+	print_moves(game);
 }
 
 void	move_left(t_game *game)
@@ -865,7 +767,6 @@ void	move_left(t_game *game)
 	char	**map_2;
 	t_coord	pos;
 	t_coord	pos_2;
-	char	c;
 
 	map = game->screen.map;
 	pos.x = game->screen.player.x - 1;
@@ -873,30 +774,9 @@ void	move_left(t_game *game)
 	map_2 = game->map;
 	pos_2.x = game->player.pos.x - 1;
 	pos_2.y = game->player.pos.y;
-	c = map_2[pos_2.y][pos_2.x];
-	if (c == 'C')
-	{
-		ft_putstr_fd("Hey, this stuff seem usefull, let's keep it\t", 1);
-		game->collect_nb--;
-		map[pos.y][pos.x] = '0';
-		map_2[pos_2.y][pos_2.x] = '0';
-	}
-	else if (c == 'E')
-	{
-		if (game->collect_nb)
-			ft_putstr_fd("Hmmm, i think there are still things to do here\t", 1);
-		else
-		{
-			game->moves++;
-			ft_putstr_fd("Yay! My job is done here!\n", 1);
-			ft_putstr_fd("Congratulations, you completed this map with ", 1);
-			ft_putnbr_fd(game->moves, 1);
-			ft_putstr_fd(" moves!\n", 1);
-			game->quit = 1;
-		}
-	}
-	if (c == '1')
-		ft_putstr_fd("Outch, That's a wall! (doesn't count as a move)\t", 1);
+	detect_collect_exit(game, &map[pos.y][pos.x], &map_2[pos_2.y][pos_2.x]);
+	if (map[pos.y][pos.x] == '1')
+		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
 	else
 	{
 		game->moves++;
@@ -904,12 +784,7 @@ void	move_left(t_game *game)
 		game->player.pos.x--;
 		scroll_screen(game);
 	}
-	if (!game->quit)
-	{
-		ft_putstr_fd("Total moves : ", 1);
-		ft_putnbr_fd(game->moves, 1);
-		ft_putendl_fd("", 1);
-	}
+	print_moves(game);
 }
 
 int	handle_keypress(int key, t_game *game)
