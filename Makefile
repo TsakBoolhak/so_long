@@ -8,7 +8,13 @@ SRCS		=	${SRCFOLD}main.c \
 				${SRCFOLD}print_1.c \
 				${SRCFOLD}print_2.c \
 				${SRCFOLD}parser_checks.c \
-				${SRCFOLD}parser.c
+				${SRCFOLD}parser.c \
+				${SRCFOLD}textures.c \
+				${SRCFOLD}init.c \
+				${SRCFOLD}refresh.c \
+				${SRCFOLD}free_datas.c \
+				${SRCFOLD}movements.c \
+				${SRCFOLD}render.c
 
 OBJS		= ${SRCS:.c=.o}
 
