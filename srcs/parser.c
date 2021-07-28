@@ -35,7 +35,7 @@ int	map_parser(int fd, t_game *game, t_parse *parse)
 		ret = get_next_line(fd, &line, 0);
 		if (ret == -1)
 			return (return_error("Error occured while reading file.", -1));
-		if (!ret)
+		else if (!ret)
 			break ;
 		game->map = ft_add_str_to_tab(game->map, line);
 		if (!game->map)
