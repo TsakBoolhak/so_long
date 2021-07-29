@@ -55,6 +55,7 @@ typedef struct s_game
 	int			collect_nb;
 	int			quit;
 	int			quit_time;
+	int			sentence;
 	char		**map;
 	t_screen	screen;
 	t_coord		res;
@@ -63,6 +64,8 @@ typedef struct s_game
 	t_img		grass;
 	t_img		exit;
 	t_img		collect;
+	t_img		font;
+	t_img		letter;
 	t_character	player;
 	void		*win;
 	void		*mlx;
@@ -356,6 +359,30 @@ int	parser(int ac, char **av, t_game *game)
 	return (0);
 }
 
+void	fill_font_img(t_img *pack, t_img *img, int x_start, int y_start)
+{
+	int		x;
+	int		y;
+	int		i;
+	char	*addr;
+
+	i = 0;
+	y = y_start;
+	while (y < y_start + 40)
+	{
+		x = x_start;
+		while (x < x_start + 40)
+		{
+			addr = pack->addr + (y * pack->width + x * (pack->bpp / 8));
+			if ((int)(*addr))
+				ft_memcpy(img->addr + i, addr, 4);
+			i += 4;
+			x++;
+		}
+		y++;
+	}
+}
+
 void	fill_texture_img(t_img *pack, t_img *img, int x_start, int y_start)
 {
 	int		x;
@@ -380,6 +407,34 @@ void	fill_texture_img(t_img *pack, t_img *img, int x_start, int y_start)
 	}
 }
 
+void	put_font_to_img(t_img *dst, t_img *src, int x_start, int y_start)
+{
+	t_coord	dst_pos;
+	t_coord	src_pos;
+	char	*addr_dst;
+	char	*addr_src;
+	int		color;
+
+	dst_pos.y = y_start;
+	src_pos.y = 0;
+	while (dst_pos.y < y_start + 40)
+	{
+		dst_pos.x = x_start;
+		src_pos.x = 0;
+		while (dst_pos.x < x_start + 40)
+		{
+			addr_dst = dst->addr + (dst_pos.y * dst->width + dst_pos.x * 4);
+			addr_src = src->addr + (src_pos.y * src->width + src_pos.x * 4);
+			color = (int)(*addr_src);
+			if (color && color != (int)(*addr_dst))
+				ft_memcpy(addr_dst, addr_src, 4);
+			dst_pos.x++;
+			src_pos.x++;
+		}
+		dst_pos.y++;
+		src_pos.y++;
+	}
+}
 void	put_img_to_img(t_img *dst, t_img *src, int x_start, int y_start)
 {
 	t_coord	dst_pos;
@@ -479,6 +534,106 @@ void	setup_textures_addr(t_game *game, t_img *pack)
 	fill_texture_img(pack, &game->grass, 0, 64);
 	fill_texture_img(pack, &game->exit, 64, 0);
 	fill_texture_img(pack, &game->collect, 128, 0);
+}
+
+int	ft_strchr_index(char *s, char c)
+{
+	int	i;
+
+	i = 0;
+	while (s[i] && s[i] != c)
+		i++;
+	if (s[i])
+		return (i);
+	return (-1);
+}
+
+void	get_font_pos(char c, t_coord *pos)
+{
+	int i;
+
+	if (c == ' ')
+		return ;
+	i = ft_strchr_index(" !\"#$%&'()*+,-.", c);
+	if (i > -1)
+	{
+		pos->x = 40 * i + 4;
+		pos->y = 4;
+		return ;
+	}
+	i = ft_strchr_index("/0123456789:;<=", c);
+	if (i > -1)
+	{
+		pos->x = 40 * i + 4;
+		pos->y = 44;
+		return ;
+	}
+	i = ft_strchr_index(">?@ABCDEFGHIJKL", c);
+	if (i > -1)
+	{
+		pos->x = 40 * i + 4;
+		pos->y = 84;
+		return ;
+	}
+	i = ft_strchr_index("NMOPQRSTUVWXYZ|", c);
+	if (i > -1)
+	{
+		pos->x = 40 * i + 4;
+		pos->y = 124;
+		return ;
+	}
+	i = ft_strchr_index("\\]^_`abcdefghij", c);
+	if (i > -1)
+	{
+		pos->x = 40 * i + 4;
+		pos->y = 164;
+		return ;
+	}
+	i = ft_strchr_index("klmnopqrstuvwxy", c);
+	if (i > -1)
+	{
+		pos->x = 40 * i + 4;
+		pos->y = 204;
+		return ;
+	}
+	if (c == 'z')
+	{
+		pos->x = 4;
+		pos->y = 244;
+	}
+}
+
+void	putstr_to_img(t_game *game, char *str, int x, int y)
+{
+	int	i;
+	t_coord	pos;
+
+	i = 0;
+	while (str[i] && 32 * i < game->res.x - x)
+	{
+		ft_memset(&pos, -1, sizeof(t_coord));
+		ft_memset(game->letter.addr, 0, 32 * 32 * 4);
+		get_font_pos(str[i], &pos);
+		if (pos.x >= 0)
+		{
+			fill_texture_img(&game->font, &game->letter, pos.x, pos.y);
+			put_img_to_img(&game->screen.img, &game->letter, x + 32 * i, y);
+		}
+		i++;
+	}
+}
+
+int	init_font(t_game *game, char *font)
+{
+	game->font.img = mlx_xpm_file_to_image(game->mlx, font, &game->font.width, &game->font.height);
+	if (!game->font.img)
+		return (return_error("Couldn't load the texture pack", -1));
+	game->font.addr = mlx_get_data_addr(game->font.img, &game->font.bpp, &game->font.width, &game->font.end);
+	game->letter.img = mlx_new_image(game->mlx, 32, 32);
+	if (!game->letter.img)
+		return (return_error("Couldn't allocate enough memory", -1));
+	game->letter.addr = mlx_get_data_addr(game->letter.img, &game->letter.bpp, &game->letter.width, &game->letter.end);
+	return (0);
 }
 
 int	init_textures(t_game *game, char *pack_1)
@@ -603,7 +758,7 @@ int	init_game(t_game *game)
 	if (!game->mlx)
 		return (return_error("Couldn't allocate enough memory", -1));
 	if (init_screen(game) || init_textures(game, "pack_1.xpm")
-		|| init_player(game, "cat1.xpm"))
+		|| init_player(game, "cat1.xpm") || init_font(game, "Font.xpm"))
 		return (-1);
 	return (0);
 }
@@ -650,6 +805,10 @@ void	free_all_datas(t_game *game)
 		mlx_destroy_image(game->mlx, game->collect.img);
 	if (game->screen.img.img)
 		mlx_destroy_image(game->mlx, game->screen.img.img);
+	if (game->font.img)
+		mlx_destroy_image(game->mlx, game->font.img);
+	if (game->letter.img)
+		mlx_destroy_image(game->mlx, game->letter.img);
 	ft_free_tab((void **)(game->screen.map));
 	ft_free_tab((void **)(game->map));
 	free_player_datas(game, &game->player);
@@ -761,17 +920,22 @@ void	scroll_screen(t_game *game)
 
 void	detect_collect_exit(t_game *game, char *game_map_c, char *screen_map_c)
 {
+	game->sentence = 0;
 	if (*screen_map_c == 'C')
 	{
 		ft_putstr_fd("Hey, this stuff seem usefull, let's keep it ", 1);
 		game->collect_nb--;
 		*game_map_c = '0';
 		*screen_map_c = '0';
+		game->sentence = 1;
 	}
 	else if (*screen_map_c == 'E')
 	{
 		if (game->collect_nb)
+		{
 			ft_putstr_fd("Hmmm, i think there are still things to do here ", 1);
+			game->sentence = 2;
+		}
 		else
 		{
 			game->moves++;
@@ -779,6 +943,7 @@ void	detect_collect_exit(t_game *game, char *game_map_c, char *screen_map_c)
 			ft_putstr_fd("Congratulations, you completed this map with ", 1);
 			ft_putnbr_fd(game->moves, 1);
 			ft_putstr_fd(" moves!\n", 1);
+			game->sentence = 3;
 			game->quit = 1;
 		}
 	}
@@ -809,7 +974,10 @@ void	move_up(t_game *game)
 	pos_2.y = game->player.pos.y - 1;
 	detect_collect_exit(game, &map[pos.y][pos.x], &map_2[pos_2.y][pos_2.x]);
 	if (map[pos.y][pos.x] == '1')
+	{
+		game->sentence = 4;
 		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
+	}
 	else
 	{
 		game->moves++;
@@ -835,7 +1003,10 @@ void	move_down(t_game *game)
 	pos_2.y = game->player.pos.y + 1;
 	detect_collect_exit(game, &map[pos.y][pos.x], &map_2[pos_2.y][pos_2.x]);
 	if (map[pos.y][pos.x] == '1')
+	{
+		game->sentence = 4;
 		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
+	}
 	else
 	{
 		game->moves++;
@@ -861,7 +1032,10 @@ void	move_right(t_game *game)
 	pos_2.y = game->player.pos.y;
 	detect_collect_exit(game, &map[pos.y][pos.x], &map_2[pos_2.y][pos_2.x]);
 	if (map[pos.y][pos.x] == '1')
+	{
+		game->sentence = 4;
 		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
+	}
 	else
 	{
 		game->moves++;
@@ -887,7 +1061,10 @@ void	move_left(t_game *game)
 	pos_2.y = game->player.pos.y;
 	detect_collect_exit(game, &map[pos.y][pos.x], &map_2[pos_2.y][pos_2.x]);
 	if (map[pos.y][pos.x] == '1')
+	{
+		game->sentence = 4;
 		ft_putstr_fd("Outch, That's a wall! (doesn't count as a move)\t", 1);
+	}
 	else
 	{
 		game->moves++;
@@ -1035,8 +1212,27 @@ void	draw_player(t_game *game)
 
 int	render_frame(t_game *game)
 {
+	char	*nbr;
+
 	fill_screen_buffer(game);
 	draw_player(game);
+	putstr_to_img(game, "MOVES : ", 0, 0);
+	nbr = ft_itoa(game->moves - game->quit);
+	if (!nbr)
+	{
+		ft_putendl_fd("Error\nMemory allocation failed", 2);
+		mlx_loop_end(game->mlx);
+	}
+	putstr_to_img(game, nbr, 8 * 32, 0);
+	free(nbr);
+	if (game->sentence == 1)
+		putstr_to_img(game, "HEY! THIS STUFF SEEMS USEFUL!", 0, game->res.y - 32);
+	else if (game->sentence == 2)
+		putstr_to_img(game, "I THINK I STILL HAVE THINGS TO DO", 0, game->res.y - 32);
+	else if (game->sentence == 3)
+		putstr_to_img(game, "MY JOB IS DONE HERE!", 0, game->res.y - 32);
+	else if (game->sentence == 4)
+		putstr_to_img(game, "AWW!! THIS WALL IS STRONGER THAN ME!", 0, game->res.y - 32);
 	mlx_put_image_to_window(game->mlx, game->win, game->screen.img.img, 0, 0);
 	if (game->player.state == 55)
 	{
@@ -1052,7 +1248,7 @@ int	render_frame(t_game *game)
 	}
 	if (game->player.state > 0)
 		game->player.state++;
-	if (game->quit && game->quit_time == 20)
+	if (game->quit && game->quit_time == 50)
 		mlx_loop_end(game->mlx);
 	else if (game->quit)
 		game->quit_time++;
