@@ -20,6 +20,30 @@ typedef struct s_img
 	int		end;
 }t_img;
 
+typedef struct s_infos
+{
+	int		dir;
+	t_coord	map_pos;
+	t_coord	screen_pos;
+}t_infos;
+
+typedef struct s_ennemies
+{
+	t_img	front_1;
+	t_img	front_2;
+	t_img	front_3;
+	t_img	back_1;
+	t_img	back_2;
+	t_img	back_3;
+	t_img	right_1;
+	t_img	right_2;
+	t_img	right_3;
+	t_img	left_1;
+	t_img	left_2;
+	t_img	left_3;
+	t_list	*infos;
+}t_ennemies;
+
 typedef struct s_character
 {
 	t_img	front_1;
@@ -67,6 +91,7 @@ typedef struct s_game
 	t_img		font;
 	t_img		letter;
 	t_character	player;
+	t_ennemies	ennemies;
 	void		*win;
 	void		*mlx;
 }t_game;
@@ -98,10 +123,11 @@ void	print_usage(void)
 void	print_map_rules(void)
 {
 	ft_putendl_fd("\nMap rules:", 2);
-	ft_putstr_fd("- Map must be composed of only 5 possible characters", 2);
-	ft_putstr_fd(": '0' (zero) for an empty space, '1' (one) for a wall, ", 2);
-	ft_putstr_fd("'C' for a collectible, 'E' for map exit and ", 2);
-	ft_putendl_fd("'P' for the player's starting position.", 2);
+	ft_putendl_fd("- Map must be composed of only 5 possible characters :", 2);
+	ft_putendl_fd("\t'0' (zero) for an empty space\n\t'1' (one) for a wall", 2);
+	ft_putendl_fd("\t'C' for a collectible\n\t'E' for an exit\n", 2);
+	ft_putendl_fd("\t'P' for the player's starting position", 2);
+	ft_putendl_fd("\t'G' for a guard that will patrol", 2);
 	ft_putendl_fd("- Map must be closed/surrounded by walls", 2);
 	ft_putstr_fd("- Map must contain at least one exit and one ", 2);
 	ft_putendl_fd("collectible\n- Map must be rectangular", 2);
@@ -184,7 +210,30 @@ void	print_char_error(char c, int column, int *flag)
 	}
 }
 
-void	handle_valid_char(char c, int i, t_game *game, t_parse *parse)
+int	store_ennemies(t_game *game, int x, int y)
+{
+	t_list	*new;
+	t_infos	*infos;
+
+	infos = malloc(sizeof(t_infos));
+	if (!infos)
+		return (-1);
+	new = ft_lstnew(infos);
+	if (!new)
+	{
+		free(infos);
+		return (-1);
+	}
+	infos->map_pos.x = x;
+	infos->map_pos.y = y;
+	infos->screen_pos.x = -1;
+	infos->screen_pos.y = -1;
+	infos->dir = 0;
+	ft_lstadd_back(&game->ennemies.infos, new);
+	return (0);
+}
+
+int	handle_valid_char(char c, int i, t_game *game, t_parse *parse)
 {
 	if (c == 'P')
 	{
@@ -195,9 +244,12 @@ void	handle_valid_char(char c, int i, t_game *game, t_parse *parse)
 		(parse->collectible)++;
 	else if (c == 'E')
 		(parse->exit)++;
+	else if (c == 'G')
+		return (store_ennemies(game, i, game->height - 1));
+	return (0);
 }
 
-void	check_char(char *line, int i, t_game *game, t_parse *parse)
+int	check_char(char *line, int i, t_game *game, t_parse *parse)
 {
 	if (line[i] != '1' && (!i || game->height == 1 || i == game->width - 1))
 	{
@@ -205,7 +257,7 @@ void	check_char(char *line, int i, t_game *game, t_parse *parse)
 		print_char_error(line[i], i + 1, &parse->char_error);
 		ft_putstr_fd(" -Map is not closed", 2);
 	}
-	if (!ft_strchr("01ECP", line[i]))
+	if (!ft_strchr("01ECPG", line[i]))
 	{
 		print_line_error(line, game->height, &parse->line_error, game->map);
 		print_char_error(line[i], i + 1, &parse->char_error);
@@ -217,9 +269,13 @@ void	check_char(char *line, int i, t_game *game, t_parse *parse)
 		print_char_error(line[i], i + 1, &parse->char_error);
 		ft_putstr_fd(" -Map contain more than one player spawn", 2);
 	}
-	handle_valid_char(line[i], i, game, parse);
+	if	(handle_valid_char(line[i], i, game, parse))
+		{
+			return (-1);
+		}
 	if (parse->char_error)
 		ft_putendl_fd("", 2);
+	return (0);
 }
 
 int	check_line(char *line, t_game *game, t_parse *parse)
@@ -244,7 +300,8 @@ int	check_line(char *line, t_game *game, t_parse *parse)
 	while (line[i])
 	{
 		parse->char_error = 0;
-		check_char(line, i, game, parse);
+		if (check_char(line, i, game, parse))
+			return (-1);
 		i++;
 	}
 	return (parse->line_error);
@@ -316,9 +373,9 @@ int	map_parser(int fd, t_game *game, t_parse *parse)
 		if (check_line(line, game, parse))
 			return (-1);
 	}
-	if (!game->height)
+	if (game->height < 3)
 	{
-		ft_putendl_fd("Error\nFile is empty", 2);
+		ft_putendl_fd("Error\nFile is too small to be rectangular", 2);
 		return (-1);
 	}
 	last_parsing_checks((game->map)[game->height - 1], game, parse);
@@ -812,6 +869,7 @@ void	free_all_datas(t_game *game)
 	ft_free_tab((void **)(game->screen.map));
 	ft_free_tab((void **)(game->map));
 	free_player_datas(game, &game->player);
+	ft_lstclear(&game->ennemies.infos, &free);
 	if (game->win)
 		mlx_destroy_window(game->mlx, game->win);
 	if (game->mlx)
@@ -889,6 +947,24 @@ void	get_map_pos(t_game *game, t_coord *screen, t_coord *map, t_coord *len)
 		handle_tall_map(game, &screen->y, &map->y, &len->y);
 }
 
+#include <stdio.h>
+
+void	update_data(t_game *game /*, t_coord map, t_coord screen, t_coord len*/)
+{
+	t_list	*tmp;
+	t_infos	*ptr;
+
+	printf("update data\n");
+	tmp = game->ennemies.infos;
+	while (game->ennemies.infos)
+	{
+		ptr = game->ennemies.infos->content;
+		printf("Map x %d\ty %d\n", ptr->map_pos.x, ptr->map_pos.y);
+		game->ennemies.infos = game->ennemies.infos->next;
+	}
+	game->ennemies.infos = tmp;
+}
+
 void	scroll_screen(t_game *game)
 {
 	int		y;
@@ -902,6 +978,7 @@ void	scroll_screen(t_game *game)
 	game->screen.player.y = game->player.pos.y - map_pos.y + screen_pos.y;
 	y = 0;
 	map = game->screen.map;
+	update_data(game /*, map_pos, screen_pos, len*/);
 	while (y < game->screen.size.y)
 	{
 		if (y < screen_pos.y || y > screen_pos.y + len.y)
