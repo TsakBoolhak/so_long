@@ -1184,7 +1184,6 @@ void	move_up(t_game *game)
 		game->moves++;
 		game->screen.player.y--;
 		game->player.pos.y--;
-		scroll_screen(game);
 	}
 	print_moves(game);
 }
@@ -1213,7 +1212,6 @@ void	move_down(t_game *game)
 		game->moves++;
 		game->screen.player.y++;
 		game->player.pos.y++;
-		scroll_screen(game);
 	}
 	print_moves(game);
 }
@@ -1242,7 +1240,6 @@ void	move_right(t_game *game)
 		game->moves++;
 		game->screen.player.x++;
 		game->player.pos.x++;
-		scroll_screen(game);
 	}
 	print_moves(game);
 }
@@ -1271,7 +1268,6 @@ void	move_left(t_game *game)
 		game->moves++;
 		game->screen.player.x--;
 		game->player.pos.x--;
-		scroll_screen(game);
 	}
 	print_moves(game);
 }
@@ -1525,10 +1521,110 @@ void	draw_player(t_game *game)
 	put_img_to_img(&game->screen.img, img, pos.x + increm.x, pos.y + increm.y);
 }
 
+t_coord	get_next_pos(t_game *game, t_infos *infos)
+{
+	t_coord pos;
+
+	pos.x = infos->map_pos.x;
+	pos.y = infos->map_pos.y;
+	if (game)
+		pos.x = infos->map_pos.x;
+	if (infos->dir == 0/* && game->map[pos.y + 1][pos.x] != '1'*/)
+		pos.y++;
+	else if (infos->dir == 1/* && game->map[pos.y][pos.x + 1] != '1'*/)
+		pos.x++;
+	else if (infos->dir == 2/* && game->map[pos.y - 1][pos.x] != '1'*/)
+		pos.y--;
+	else/* if (game->map[pos.y][pos.x - 1] != '1')*/
+		pos.x--;
+	return (pos);
+}
+
+int		check_other_moves(t_game *game, t_coord step, t_list *root)
+{
+	t_list	*tmp;
+	t_infos	*infos;
+	t_coord	pos;
+	int		conflict;
+
+	tmp = root;
+	conflict = 0;
+	while (root)
+	{
+		infos = (t_infos *)(root->content);
+		pos = get_next_pos(game, infos);
+		if (pos.x == step.x && pos.y == step.y)
+		{
+			if (!conflict)
+				conflict++;
+			else
+				return (-1);
+		}
+		root = root->next;
+	}
+	root = tmp;
+	return (0);
+}
+
+int		check_next_step(t_game *game, t_infos *infos, t_coord step, t_list *root)
+{
+	t_infos	player;
+
+	player.map_pos.x = game->player.pos.x + (game->player.dir == 1) - (game->player.dir == 3);
+	player.map_pos.y = game->player.pos.y + (game->player.dir == 0) - (game->player.dir == 2);
+	if (game->map[step.y][step.x] == '1')
+		return (-1);
+	else if (player.map_pos.x == step.x && player.map_pos.y == step.y)
+		return (-1);
+	else if (step.x == game->player.pos.x && step.y == game->player.pos.y)
+	{
+		if (infos->dir == 0 && game->player.dir == 2)
+			return (-1);
+		else if (infos->dir == 2 && game->player.dir == 0)
+			return (-1);
+		else if (infos->dir == 1 && game->player.dir == 3)
+			return (-1);
+		else if (infos->dir == 3 && game->player.dir == 1)
+			return (-1);
+	}
+//	else if (check_other_moves(game, step, root))
+//		return (-1);
+	if (root)
+		return (0);
+	return (0);
+}
+
+void	move_ennemies(t_game *game)
+{
+	t_list	*tmp;
+	t_infos	*infos;
+	t_coord	pos;
+
+	tmp = game->ennemies.infos;
+	while (game->ennemies.infos)
+	{
+		infos = (t_infos *)(game->ennemies.infos->content);
+		pos = get_next_pos(game, infos);
+		if (!check_next_step(game, infos, pos, tmp))
+			infos->map_pos = pos;
+		infos->step++;
+		if (infos->step == 5)
+		{
+			infos->dir++;
+			if (infos->dir == 4)
+				infos->dir = 0;
+			infos->step = 0;
+		}
+		game->ennemies.infos = game->ennemies.infos->next;
+	}
+	game->ennemies.infos = tmp;
+}
+
 int	render_frame(t_game *game)
 {
 	char	*nbr;
 
+	scroll_screen(game);
 	fill_screen_buffer(game);
 	draw_player(game);
 	draw_ennemies(game);
@@ -1552,6 +1648,7 @@ int	render_frame(t_game *game)
 	mlx_put_image_to_window(game->mlx, game->win, game->screen.img.img, 0, 0);
 	if (game->player.state == 55)
 	{
+		move_ennemies(game);
 		if (game->player.dir == 0)
 			move_down(game);
 		else if (game->player.dir == 1)
