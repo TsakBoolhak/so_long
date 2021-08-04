@@ -485,7 +485,7 @@ void	put_img_to_img(t_img *dst, t_img *src, int x_start, int y_start)
 		dst_pos.y = 0;
 		src_pos.y = -y_start;
 	}
-	while (dst_pos.y < y_start + 32)
+	while (dst_pos.y < y_start + 32 && dst_pos.y < dst->height)
 	{
 		dst_pos.x = x_start;
 		src_pos.x = 0;
@@ -494,7 +494,7 @@ void	put_img_to_img(t_img *dst, t_img *src, int x_start, int y_start)
 			dst_pos.x = 0;
 			src_pos.x = -x_start;
 		}
-		while (dst_pos.x < x_start + 32)
+		while (dst_pos.x < x_start + 32 && dst_pos.x * 4 < dst->width)
 		{
 			addr_dst = dst->addr + (dst_pos.y * dst->width + dst_pos.x * 4);
 			addr_src = src->addr + (src_pos.y * src->width + src_pos.x * 4);
@@ -556,6 +556,7 @@ int	init_screen(t_game *game)
 		return (return_error("Couldnt allocate enough memory", -1));
 	}
 	img.addr = mlx_get_data_addr(img.img, &img.bpp, &img.width, &img.end);
+	img.height = game->res.y;
 	game->screen.img = img;
 	return (0);
 }
@@ -1055,18 +1056,11 @@ void	get_map_pos(t_game *game, t_coord *screen, t_coord *map, t_coord *len)
 		handle_tall_map(game, &screen->y, &map->y, &len->y);
 }
 
-#include <stdio.h>
-
 void	update_data(t_game *game , t_coord map, t_coord screen)
 {
 	t_list	*tmp;
 	t_infos	*ptr;
 
-	print_map(game->screen.map, 1);
-	printf("update data\n");
-//	printf("Screen map size: x %d\ty %d\n", game->screen.size.x, game->screen.size.y);
-//	printf("map: x %d\ty %d\n", map.x, map.y);
-//	printf("screen: x %d\ty %d\n\n", screen.x, screen.y);
 	tmp = game->ennemies.infos;
 	while (game->ennemies.infos)
 	{
@@ -1079,11 +1073,6 @@ void	update_data(t_game *game , t_coord map, t_coord screen)
 			ptr->screen_pos.y = ptr->map_pos.y - map.y + screen.y;
 		else
 			ptr->screen_pos.y = -1;
-		if (ptr->screen_pos.y > -1 && ptr->screen_pos.x > -1)
-		{
-			printf("Map x %d\ty %d\n", ptr->map_pos.x, ptr->map_pos.y);
-			printf("Screen x %d\ty %d\n\n", ptr->screen_pos.x, ptr->screen_pos.y);
-		}
 		game->ennemies.infos = game->ennemies.infos->next;
 	}
 	game->ennemies.infos = tmp;
@@ -1121,8 +1110,9 @@ void	scroll_screen(t_game *game)
 
 void	detect_collect_exit(t_game *game, char *game_map_c, char *screen_map_c)
 {
-	game->sentence = 0;
-	if (*screen_map_c == 'C')
+	if (game->sentence != 5)
+		game->sentence = 0;
+	if (*screen_map_c == 'C' && !game->quit)
 	{
 		ft_putstr_fd("Hey, this stuff seem usefull, let's keep it ", 1);
 		game->collect_nb--;
@@ -1130,7 +1120,7 @@ void	detect_collect_exit(t_game *game, char *game_map_c, char *screen_map_c)
 		*screen_map_c = '0';
 		game->sentence = 1;
 	}
-	else if (*screen_map_c == 'E')
+	else if (*screen_map_c == 'E' && !game->quit)
 	{
 		if (game->collect_nb)
 		{
@@ -1174,7 +1164,7 @@ void	move_up(t_game *game)
 	pos_2.x = game->player.pos.x;
 	pos_2.y = game->player.pos.y - 1;
 	detect_collect_exit(game, &map[pos.y][pos.x], &map_2[pos_2.y][pos_2.x]);
-	if (map[pos.y][pos.x] == '1')
+	if (map[pos.y][pos.x] == '1' && !game->quit)
 	{
 		game->sentence = 4;
 		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
@@ -1202,7 +1192,7 @@ void	move_down(t_game *game)
 	pos_2.x = game->player.pos.x;
 	pos_2.y = game->player.pos.y + 1;
 	detect_collect_exit(game, &map[pos.y][pos.x], &map_2[pos_2.y][pos_2.x]);
-	if (map[pos.y][pos.x] == '1')
+	if (map[pos.y][pos.x] == '1' && !game->quit)
 	{
 		game->sentence = 4;
 		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
@@ -1230,7 +1220,7 @@ void	move_right(t_game *game)
 	pos_2.x = game->player.pos.x + 1;
 	pos_2.y = game->player.pos.y;
 	detect_collect_exit(game, &map[pos.y][pos.x], &map_2[pos_2.y][pos_2.x]);
-	if (map[pos.y][pos.x] == '1')
+	if (map[pos.y][pos.x] == '1' && !game->quit)
 	{
 		game->sentence = 4;
 		ft_putstr_fd("Outch, That's a wall!(doesn't count as a move) ", 1);
@@ -1258,7 +1248,7 @@ void	move_left(t_game *game)
 	pos_2.x = game->player.pos.x - 1;
 	pos_2.y = game->player.pos.y;
 	detect_collect_exit(game, &map[pos.y][pos.x], &map_2[pos_2.y][pos_2.x]);
-	if (map[pos.y][pos.x] == '1')
+	if (map[pos.y][pos.x] == '1' && !game->quit)
 	{
 		game->sentence = 4;
 		ft_putstr_fd("Outch, That's a wall! (doesn't count as a move)\t", 1);
@@ -1472,8 +1462,7 @@ void	draw_ennemies(t_game *game)
 				img = ennemies_down_right(game, frame_chunk, &increm, content);
 			else
 				img = ennemies_top_left(game, frame_chunk, &increm, content);
-			if (/*pos.x + increm.x >= 0 && */pos.x + increm.x < game->res.x - frame_chunk * 4/* && pos.y + increm.y >= 0 */&& pos.y + increm.y < game->res.y - frame_chunk * 4)
-				put_img_to_img(&game->screen.img, img, pos.x + increm.x, pos.y + increm.y);
+			put_img_to_img(&game->screen.img, img, pos.x + increm.x, pos.y + increm.y);
 		}
 		game->ennemies.infos = game->ennemies.infos->next;
 	}
@@ -1529,68 +1518,71 @@ t_coord	get_next_pos(t_game *game, t_infos *infos)
 	pos.y = infos->map_pos.y;
 	if (game)
 		pos.x = infos->map_pos.x;
-	if (infos->dir == 0/* && game->map[pos.y + 1][pos.x] != '1'*/)
+	if (infos->dir == 0 && game->map[pos.y + 1][pos.x] != '1')
 		pos.y++;
-	else if (infos->dir == 1/* && game->map[pos.y][pos.x + 1] != '1'*/)
+	else if (infos->dir == 1 && game->map[pos.y][pos.x + 1] != '1')
 		pos.x++;
-	else if (infos->dir == 2/* && game->map[pos.y - 1][pos.x] != '1'*/)
+	else if (infos->dir == 2 && game->map[pos.y - 1][pos.x] != '1')
 		pos.y--;
-	else/* if (game->map[pos.y][pos.x - 1] != '1')*/
+	else if (infos->dir == 3 && game->map[pos.y][pos.x - 1] != '1')
 		pos.x--;
 	return (pos);
 }
 
-int		check_other_moves(t_game *game, t_coord step, t_list *root)
+int		check_other_moves(t_game *game, t_coord step, t_list *lst)
 {
-	t_list	*tmp;
 	t_infos	*infos;
 	t_coord	pos;
-	int		conflict;
 
-	tmp = root;
-	conflict = 0;
-	while (root)
+	while (lst)
 	{
-		infos = (t_infos *)(root->content);
+		infos = (t_infos *)(lst->content);
 		pos = get_next_pos(game, infos);
 		if (pos.x == step.x && pos.y == step.y)
-		{
-			if (!conflict)
-				conflict++;
-			else
-				return (-1);
-		}
-		root = root->next;
+			return (-1);
+		lst = lst->next;
 	}
-	root = tmp;
 	return (0);
 }
 
-int		check_next_step(t_game *game, t_infos *infos, t_coord step, t_list *root)
+int		check_next_step(t_game *game, t_infos *infos, t_coord step, t_list *lst)
 {
 	t_infos	player;
+	t_coord	pos;
 
-	player.map_pos.x = game->player.pos.x + (game->player.dir == 1) - (game->player.dir == 3);
-	player.map_pos.y = game->player.pos.y + (game->player.dir == 0) - (game->player.dir == 2);
-	if (game->map[step.y][step.x] == '1')
+	player.map_pos.x = game->player.pos.x;
+	player.map_pos.y = game->player.pos.y;
+	player.dir = game->player.dir;
+	pos = get_next_pos(game, &player);
+	if (pos.x == step.x && pos.y == step.y)
+	{
+		ft_putendl_fd("Outch! I've been bitten by a dog! GAME OVER", 1);
+		game->quit = 1;
+		game->sentence = 5;
 		return (-1);
-	else if (player.map_pos.x == step.x && player.map_pos.y == step.y)
+	}
+	else if (game->map[step.y][step.x] == '1')
 		return (-1);
 	else if (step.x == game->player.pos.x && step.y == game->player.pos.y)
 	{
-		if (infos->dir == 0 && game->player.dir == 2)
+		if ((infos->dir == 0 && game->player.dir == 2) || (infos->dir == 2 && game->player.dir == 0) || (infos->dir == 1 && game->player.dir == 3) || (infos->dir == 3 && game->player.dir == 1))
+		{
+			ft_putendl_fd("Outch! I've been bitten by a dog! GAME OVER", 1);
+			game->quit = 1;
+			game->sentence = 5;
 			return (-1);
+		}
+		/*
 		else if (infos->dir == 2 && game->player.dir == 0)
 			return (-1);
 		else if (infos->dir == 1 && game->player.dir == 3)
 			return (-1);
 		else if (infos->dir == 3 && game->player.dir == 1)
 			return (-1);
+		*/
 	}
-//	else if (check_other_moves(game, step, root))
-//		return (-1);
-	if (root)
-		return (0);
+	else if (check_other_moves(game, step, lst))
+		return (-1);
 	return (0);
 }
 
@@ -1605,7 +1597,7 @@ void	move_ennemies(t_game *game)
 	{
 		infos = (t_infos *)(game->ennemies.infos->content);
 		pos = get_next_pos(game, infos);
-		if (!check_next_step(game, infos, pos, tmp))
+		if (!check_next_step(game, infos, pos, game->ennemies.infos->next))
 			infos->map_pos = pos;
 		infos->step++;
 		if (infos->step == 5)
@@ -1645,6 +1637,8 @@ int	render_frame(t_game *game)
 		putstr_to_img(game, "MY JOB IS DONE HERE!", 0, game->res.y - 32);
 	else if (game->sentence == 4)
 		putstr_to_img(game, "AWW!! THIS WALL IS STRONGER THAN ME!", 0, game->res.y - 32);
+	else if (game->sentence == 5)
+		putstr_to_img(game, "GAME OVER", game->res.x / 2 - 5 * (game->res.x / 2 - 5 >= 0), game->res.y / 2);
 	mlx_put_image_to_window(game->mlx, game->win, game->screen.img.img, 0, 0);
 	if (game->player.state == 55)
 	{
