@@ -80,6 +80,7 @@ SRCS_STRING	= ft_memmove.c \
 			ft_isprint.c \
 			ft_tolower.c \
 			ft_toupper.c \
+			ft_strchr_index.c \
 			ft_strlen.c
 
 SRCS_GNL	= get_next_line.c \

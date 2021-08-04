@@ -2,7 +2,24 @@ SRCFOLD		= srcs/
 
 BONUSFOLD	= srcs_bonus/
 
-SRCS_BONUS	= ${BONUSFOLD}main.c
+SRCS_BONUS	=	${BONUSFOLD}main_bonus.c \
+				${BONUSFOLD}print_1_bonus.c \
+				${BONUSFOLD}print_2_bonus.c \
+				${BONUSFOLD}parser_checker_bonus.c \
+				${BONUSFOLD}parser_bonus.c \
+				${BONUSFOLD}textures_bonus.c \
+				${BONUSFOLD}init_bonus.c \
+				${BONUSFOLD}refresh_bonus.c \
+				${BONUSFOLD}free_datas_bonus.c \
+				${BONUSFOLD}movements_bonus.c \
+				${BONUSFOLD}font_bonus.c \
+				${BONUSFOLD}init_ennemies_bonus.c \
+				${BONUSFOLD}draw_ennemies_bonus.c \
+				${BONUSFOLD}draw_player_bonus.c \
+				${BONUSFOLD}movements_ennemies_bonus.c \
+				${BONUSFOLD}draw_bonus.c \
+				${BONUSFOLD}fill_screen_bonus.c \
+				${BONUSFOLD}render_bonus.c
 
 SRCS		=	${SRCFOLD}main.c \
 				${SRCFOLD}print_1.c \
