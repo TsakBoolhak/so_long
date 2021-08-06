@@ -1,7 +1,7 @@
+#include <unistd.h>
 #include "libft.h"
 #include "so_long_structures.h"
 #include "so_long.h"
-#include <unistd.h>
 
 void	print_line_error(char *line, int row, int *no_print, char **map)
 {

@@ -1,5 +1,6 @@
-#include "so_long_structures.h"
 #include "libft.h"
+#include "so_long_structures.h"
+#include "so_long.h"
 
 void	put_img_to_img(t_img *dst, t_img *src, int x_start, int y_start)
 {

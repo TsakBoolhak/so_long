@@ -23,7 +23,7 @@ int	store_ennemies(t_game *game, int x, int y)
 	infos->map_pos.y = y;
 	infos->screen_pos.x = -1;
 	infos->screen_pos.y = -1;
-	infos->dir = 3;
+	infos->dir = 0;
 	infos->step = 0;
 	ft_lstadd_back(&game->ennemies.infos, new);
 	return (0);

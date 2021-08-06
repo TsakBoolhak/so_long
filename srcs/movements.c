@@ -1,7 +1,7 @@
+#include "mlx.h"
+#include "libft.h"
 #include "so_long_structures.h"
 #include "so_long.h"
-#include "libft.h"
-#include "mlx.h"
 
 void	move_up(t_game *game)
 {

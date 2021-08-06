@@ -1,8 +1,8 @@
-#include "so_long_structures.h"
-#include "libft.h"
-#include "so_long.h"
-#include "mlx.h"
 #include <stdlib.h>
+#include "mlx.h"
+#include "libft.h"
+#include "so_long_structures.h"
+#include "so_long.h"
 
 int	create_screen_map(t_game *game)
 {

@@ -1,7 +1,8 @@
-#include "so_long_structures.h"
-#include "libft.h"
+#include <stdlib.h>
 #include "mlx.h"
-#include "stdlib.h"
+#include "libft.h"
+#include "so_long_structures.h"
+#include "so_long.h"
 
 void	free_player_datas(t_game *game, t_character *player)
 {

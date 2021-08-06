@@ -1,6 +1,6 @@
-#include "so_long_structures.h"
 #include "mlx.h"
 #include "libft.h"
+#include "so_long_structures.h"
 #include "so_long.h"
 
 void	fill_texture_img(t_img *pack, t_img *img, int x_start, int y_start)

@@ -1,7 +1,7 @@
+#include "mlx.h"
+#include "libft.h"
 #include "so_long_structures.h"
 #include "so_long.h"
-#include "libft.h"
-#include "mlx.h"
 
 int	main(int ac, char **av)
 {

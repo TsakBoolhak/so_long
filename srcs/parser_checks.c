@@ -1,7 +1,7 @@
+#include <unistd.h>
 #include "libft.h"
 #include "so_long_structures.h"
 #include "so_long.h"
-#include <unistd.h>
 
 int	check_argument(int ac, char **av)
 {

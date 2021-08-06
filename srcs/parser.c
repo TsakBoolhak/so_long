@@ -1,8 +1,8 @@
+#include <unistd.h>
+#include <fcntl.h>
 #include "libft.h"
 #include "so_long_structures.h"
 #include "so_long.h"
-#include <unistd.h>
-#include <fcntl.h>
 
 void	init_parsing(t_game *game, t_parse *parse)
 {

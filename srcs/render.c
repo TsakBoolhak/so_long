@@ -1,7 +1,7 @@
+#include "mlx.h"
+#include "libft.h"
 #include "so_long_structures.h"
 #include "so_long.h"
-#include "libft.h"
-#include "mlx.h"
 
 void	detect_collect_exit(t_game *game, char *game_map_c, char *screen_map_c)
 {
