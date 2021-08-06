@@ -110,9 +110,10 @@ int	init_game(t_game *game)
 	game->mlx = mlx_init();
 	if (!game->mlx)
 		return (return_error("Couldn't allocate enough memory", -1));
-	if (init_screen(game) || init_textures(game, "pack_1.xpm")
-		|| init_player(game, "cat1.xpm") || init_font(game, "Font.xpm")
-		|| init_ennemies(game, "dog1.xpm"))
+	if (init_screen(game) || init_textures(game, "textures/pack.xpm")
+		|| init_player(game, "textures/cat.xpm")
+		|| init_font(game, "textures/font.xpm")
+		|| init_ennemies(game, "textures/dog.xpm"))
 		return (-1);
 	return (0);
 }
