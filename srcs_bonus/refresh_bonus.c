@@ -111,7 +111,7 @@ void	scroll_screen(t_game *game)
 	{
 		if (y < screen_pos.y || y > screen_pos.y + len.y)
 			ft_memset(map[y], 'W', game->screen.size.x);
-		else
+		else if ((game->map)[map_pos.y + y - screen_pos.y] + map_pos.x)
 		{
 			ft_memset(map[y], 'W', screen_pos.x);
 			ft_memcpy(map[y] + screen_pos.x, (game->map)[map_pos.y + y

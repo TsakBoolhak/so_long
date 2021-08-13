@@ -119,7 +119,7 @@ int	handle_keypress(int key, t_game *game)
 {
 	if (key == 65307)
 		mlx_loop_end(game->mlx);
-	else if (key == 122 && !game->player.state && !game->quit)
+	else if ((key == 122 || key == 119) && !game->player.state && !game->quit)
 	{
 		game->player.dir = 2;
 		game->player.state++;
@@ -129,7 +129,7 @@ int	handle_keypress(int key, t_game *game)
 		game->player.dir = 0;
 		game->player.state++;
 	}
-	else if (key == 113 && !game->player.state && !game->quit)
+	else if ((key == 113 || key == 97) && !game->player.state && !game->quit)
 	{
 		game->player.dir = 3;
 		game->player.state++;

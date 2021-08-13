@@ -92,7 +92,7 @@ OBJS		= ${SRCS:.c=.o}
 
 NAME		= libft.a
 
-CC			= @gcc
+CC			= @clang
 
 CFLAGS		= -g3 -Wall -Wextra -Werror -I.
 

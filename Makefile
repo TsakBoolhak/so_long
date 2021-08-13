@@ -41,7 +41,7 @@ NAME		= so_long
 
 NAME_BONUS	= so_long_bonus
 
-CC			= @gcc
+CC			= @clang
 
 CFLAGS		= -Wall -Wextra -Werror -g3
 

@@ -73,7 +73,6 @@ int	parser(int ac, char **av, t_game *game)
 	{
 		get_next_line(fd, NULL, 2);
 		close(fd);
-		ft_free_tab((void **)(game->map));
 		print_map_rules();
 		return (-1);
 	}

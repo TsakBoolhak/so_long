@@ -13,10 +13,10 @@ void	print_usage(void)
 void	print_map_rules(void)
 {
 	ft_putendl_fd("\nMap rules:", 2);
-	ft_putstr_fd("- Map must be composed of only 5 possible characters", 2);
-	ft_putstr_fd(": '0' (zero) for an empty space, '1' (one) for a wall, ", 2);
-	ft_putstr_fd("'C' for a collectible, 'E' for map exit and ", 2);
-	ft_putendl_fd("'P' for the player's starting position.", 2);
+	ft_putendl_fd("- Map must be composed of only 5 possible characters", 2);
+	ft_putendl_fd("\t'0' (zero) for an empty space\n\t'1' (one) for a wall", 2);
+	ft_putendl_fd("\t'C' for a collectible\n\t'E' for map exit", 2);
+	ft_putendl_fd("\t'P' for the player's starting position.", 2);
 	ft_putendl_fd("- Map must be closed/surrounded by walls", 2);
 	ft_putstr_fd("- Map must contain at least one exit and one ", 2);
 	ft_putendl_fd("collectible\n- Map must be rectangular", 2);

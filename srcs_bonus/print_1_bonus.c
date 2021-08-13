@@ -15,7 +15,7 @@ void	print_map_rules(void)
 	ft_putendl_fd("\nMap rules:", 2);
 	ft_putendl_fd("- Map must be composed of only 5 possible characters :", 2);
 	ft_putendl_fd("\t'0' (zero) for an empty space\n\t'1' (one) for a wall", 2);
-	ft_putendl_fd("\t'C' for a collectible\n\t'E' for an exit\n", 2);
+	ft_putendl_fd("\t'C' for a collectible\n\t'E' for an exit", 2);
 	ft_putendl_fd("\t'P' for the player's starting position", 2);
 	ft_putendl_fd("\t'G' for a guard that will patrol", 2);
 	ft_putendl_fd("- Map must be closed/surrounded by walls", 2);
