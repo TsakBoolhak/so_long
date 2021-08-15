@@ -34,10 +34,12 @@ int	init_screen(t_game *game)
 	t_img	img;
 
 	mlx_get_screen_size(game->mlx, &game->res.x, &game->res.y);
-	game->res.x = game->res.x / 32 - 1;
-	game->res.y = game->res.y / 32 - 1;
-	if (game->res.x < 1 || game->res.y < 1)
-		return (return_error("The screen is less than 32 * 32 pixels", -1));
+	game->res.x = game->res.x / 32 / 2;
+	game->res.y = game->res.y / 32 / 2;
+	if (game->res.x < 2 || game->res.y < 2)
+		return (return_error("The screen is too small", -1));
+	else if (game->res.y % 2)
+		game->res.y++;
 	game->screen.size.x = game->res.x;
 	game->screen.size.y = game->res.y;
 	game->res.x *= 32;
