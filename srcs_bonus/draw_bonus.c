@@ -25,14 +25,14 @@ void	draw_msg(t_game *game)
 
 	bottom = game->res.y - 32;
 	if (game->sentence == 1)
-		putstr_to_img(game, "HEY! THIS STUFF SEEMS USEFUL!", 0, bottom);
+		putstr_to_img(game, "I'LL TAKE THIS", 0, bottom);
 	else if (game->sentence == 2)
-		putstr_to_img(game, "I THINK I STILL HAVE THINGS TO DO", 0, bottom);
+		putstr_to_img(game, "I STILL HAVE STUFF TO TAKE", 0, bottom);
 	else if (game->sentence == 3)
 		putstr_to_img(game, "MY JOB IS DONE HERE!", game->res.x / 2
 			- 320 * (game->res.x / 2 - 320 >= 0), game->res.y / 2);
 	else if (game->sentence == 4)
-		putstr_to_img(game, "AWW!! THIS WALL IS STRONGER THAN ME!", 0, bottom);
+		putstr_to_img(game, "AW! THIS WALL HURTS ME!", 0, bottom);
 	else if (game->sentence == 5)
 		putstr_to_img(game, "GAME OVER", game->res.x / 2
 			- 160 * (game->res.x / 2 - 160 >= 0), game->res.y / 2);
